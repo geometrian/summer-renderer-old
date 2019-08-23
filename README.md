@@ -1,2 +1,7 @@
-# summer-renderer
-A Physical GPU-Based Renderer
+# Summer Renderer
+
+## A Physical GPU-Based Renderer
+
+## Features
+
+## Contributing
