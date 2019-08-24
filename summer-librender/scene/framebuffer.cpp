@@ -71,18 +71,22 @@ void Framebuffer::draw() const {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
+	glEnable(GL_FRAMEBUFFER_SRGB);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, layers.rgba.texture.gl_handle);
 
+	#if 1
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0f,0.0f); glVertex2f(0.0f,                      0.0f                      );
 	glTexCoord2f(1.0f,0.0f); glVertex2f(static_cast<float>(res[0]),0.0f                      );
 	glTexCoord2f(1.0f,1.0f); glVertex2f(static_cast<float>(res[0]),static_cast<float>(res[1]));
 	glTexCoord2f(0.0f,1.0f); glVertex2f(0.0f,                      static_cast<float>(res[1]));
 	glEnd();
+	#endif
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_FRAMEBUFFER_SRGB);
 
 	/*CUDA::BufferCPUManaged pixels_cpu( layers.rgba.pbo.size );
 	layers.rgba.pbo.copy_to_buffer(context_cuda,&pixels_cpu);
