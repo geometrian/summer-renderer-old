@@ -273,7 +273,7 @@ SceneGraph* load_new_gltf(std::string const& path) {
 			if (!iter.scale.empty()) {
 				assert_term(iter.scale.size()==3,"Implementation error!");
 				node->transform.type = static_cast<Node::Transform::TYPE>( node->transform.type | Node::Transform::TYPE::MSK_SCALE );
-				for (size_t i=0;i<3;++i) node->transform.rotate[i]=static_cast<float>(iter.scale[i]);
+				for (size_t i=0;i<3;++i) node->transform.scale[i]=static_cast<float>(iter.scale[i]);
 			}
 		} else {
 			assert_term(iter.matrix.size()==16,"Implementation error!");

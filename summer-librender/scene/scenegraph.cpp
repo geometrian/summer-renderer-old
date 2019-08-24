@@ -19,7 +19,7 @@ void Node::_register_for_build(
 			transform_wld_to_inside = glm::translate( transform_wld_to_inside, transform.translate );
 		}
 		if ((transform.type&Transform::TYPE::MSK_ROTATE)!=0) {
-			glm::quat quaternion(transform.rotate);
+			glm::quat quaternion( transform.rotate.w, transform.rotate.x,transform.rotate.y,transform.rotate.z );
 			Mat4x4f rotation = static_cast<Mat4x4f>(quaternion);
 			transform_wld_to_inside = transform_wld_to_inside * rotation;
 		}
