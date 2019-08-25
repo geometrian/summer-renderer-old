@@ -13,8 +13,7 @@ OptixBuildInput& AccelerationStructure::BuilderTriangles::_add_mesh_triangles(Bu
 
 	build_input.type = OptixBuildInputType::OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
 
-	_verts_ptrs.emplace_back(vertices.ptr);
-	build_input.triangleArray.vertexBuffers = &_verts_ptrs.back(); //One for each motion key
+	build_input.triangleArray.vertexBuffers = vertices.ptrs_arr; //One for each motion key
 	build_input.triangleArray.numVertices   = static_cast<unsigned int>(vertices.count);
 	build_input.triangleArray.vertexFormat = OptixVertexFormat::OPTIX_VERTEX_FORMAT_FLOAT3;
 	build_input.triangleArray.vertexStrideInBytes = static_cast<unsigned int>(vertices.stride);
@@ -44,7 +43,7 @@ void AccelerationStructure::BuilderTriangles::add_mesh_triangles_basic      (Buf
 void AccelerationStructure::BuilderTriangles::add_mesh_triangles_indexed_u16(BufferAccessor const& vertices, BufferAccessor const& indices) {
 	OptixBuildInput& build_input = _add_mesh_triangles(vertices);
 
-	build_input.triangleArray.indexBuffer = indices.ptr;
+	build_input.triangleArray.indexBuffer = indices.ptrs_arr[0];
 	build_input.triangleArray.numIndexTriplets = static_cast<unsigned int>(indices.count/3);
 	build_input.triangleArray.indexFormat = OptixIndicesFormat::OPTIX_INDICES_FORMAT_UNSIGNED_SHORT3;
 	build_input.triangleArray.indexStrideInBytes = static_cast<unsigned int>(indices.stride);
@@ -52,7 +51,7 @@ void AccelerationStructure::BuilderTriangles::add_mesh_triangles_indexed_u16(Buf
 void AccelerationStructure::BuilderTriangles::add_mesh_triangles_indexed_u32(BufferAccessor const& vertices, BufferAccessor const& indices) {
 	OptixBuildInput& build_input = _add_mesh_triangles(vertices);
 
-	build_input.triangleArray.indexBuffer = indices.ptr;
+	build_input.triangleArray.indexBuffer = indices.ptrs_arr[0];
 	build_input.triangleArray.numIndexTriplets = static_cast<unsigned int>(indices.count/3);
 	build_input.triangleArray.indexFormat = OptixIndicesFormat::OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
 	build_input.triangleArray.indexStrideInBytes = static_cast<unsigned int>(indices.stride);
@@ -63,6 +62,8 @@ void AccelerationStructure::BuilderTriangles::finish() /*override*/ {
 	DEBUG_ONLY(_finished = true;)
 }
 
+
+static unsigned int _offset = 0u;
 
 AccelerationStructure::BuilderInstances::BuilderInstances() : _instances_gpu(nullptr) {
 	_build_inputs.emplace_back();
@@ -84,7 +85,7 @@ void AccelerationStructure::BuilderInstances::add_instance(CUdeviceptr child_tra
 
 	instance.instanceId = static_cast<unsigned int>(_instances.size());
 
-	instance.sbtOffset = 0u;
+	instance.sbtOffset = _offset++;
 
 	instance.visibilityMask = 0xFF;
 

@@ -20,7 +20,7 @@
 #endif
 
 
-#ifdef _DEBUG
+#if defined _DEBUG || defined __CUDACC_DEBUG__
 	#define BUILD_DEBUG
 	#define DEBUG_ONLY(CODE) CODE
 	#define RELEASE_ONLY(CODE)
@@ -115,11 +115,13 @@ typedef glm::dvec3 Vec3d;
 typedef glm::dvec4 Vec4d;
 
 typedef glm::mat2x2 Mat2x2f;
+typedef glm::mat2x3 Mat3x2f;
 typedef glm::mat3x3 Mat3x3f;
 typedef glm::mat4x3 Mat3x4f;
 typedef glm::mat4x4 Mat4x4f;
 
 typedef glm::dmat2x2 Mat2x2d;
+typedef glm::dmat2x3 Mat3x2d;
 typedef glm::dmat3x3 Mat3x3d;
 typedef glm::dmat4x3 Mat3x4d;
 typedef glm::dmat4x4 Mat4x4d;

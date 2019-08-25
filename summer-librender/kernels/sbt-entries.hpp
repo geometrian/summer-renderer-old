@@ -25,25 +25,19 @@ class DataSBT_Miss final {
 
 class DataSBT_HitOps final {
 	public:
-		//TODO: make smaller!
+		Scene::Object::Mesh::BuffersDescriptor const buffers_descriptor;
 
 		template<typename T> class Attribute final {
 			private:
 				CUdeviceptr _attr;
-				size_t _stride;
+				size_t      _stride;
 
 			public:
-				explicit Attribute(Scene::DataBlock::Accessor<T> const* accessor) :
-					_attr  (accessor!=nullptr?accessor->get_ptr_gpu().ptr_integral:reinterpret_cast<CUdeviceptr>(nullptr)),
-					_stride(accessor!=nullptr?accessor->view->stride:~size_t(0))
-				{
-					if (_stride==0) _stride=sizeof(T);
-				}
+				Attribute() { *this=nullptr; }
 				~Attribute() = default;
 
-				__device__ bool is_valid() const {
-					return _attr!=reinterpret_cast<CUdeviceptr>(nullptr);
-				}
+				Attribute<T>& operator=(Scene::DataBlock::Accessor<T> const* accessor);
+
 				__device__ T const& operator[](size_t index) const {
 					return *reinterpret_cast<T*>(_attr+index*_stride);
 				}
@@ -53,15 +47,32 @@ class DataSBT_HitOps final {
 		Attribute<Vec3f> norms;
 		Attribute<Vec4f> tangs;
 
-		Attribute<uint16_t> indices_u16;
-		Attribute<uint32_t> indices_u32;
+		union TexCoord final {
+			Attribute<Vec2ub> u8x2;
+			Attribute<Vec2us> u16x2;
+			Attribute<Vec2f > f32x2;
+			TexCoord() {}
+		};
+		TexCoord texcoords0;
+		TexCoord texcoords1;
+
+		//TODO: colors
+
+		union Indices final {
+			Attribute<uint16_t> u16;
+			Attribute<uint32_t> u32;
+			Indices() {}
+		};
+		Indices indices;
+
+		size_t material_index;
+
+		//#ifdef BUILD_DEBUG
+		//size_t sbtentry_index;
+		//#endif
 
 	public:
-		DataSBT_HitOps(Scene::Object::Mesh const* mesh) :
-			verts(mesh->verts), norms(mesh->norms), tangs(mesh->tangs),
-			indices_u16(mesh->buffers_descriptor.type_indices==0b01u?mesh->indices.u16:nullptr),
-			indices_u32(mesh->buffers_descriptor.type_indices==0b10u?mesh->indices.u32:nullptr)
-		{}
+		explicit DataSBT_HitOps(Scene::Object::Mesh const* mesh);
 		~DataSBT_HitOps() = default;
 };
 

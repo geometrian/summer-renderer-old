@@ -1,5 +1,10 @@
 #include "scenegraph.hpp"
 
+#include "materials/image.hpp"
+#include "materials/material.hpp"
+#include "materials/sampler.hpp"
+#include "materials/texture.hpp"
+
 #include "object.hpp"
 
 
@@ -38,7 +43,7 @@ void Node::_register_for_build(
 }
 
 
-Scene::Scene() {
+Scene::Scene(SceneGraph const* parent) : parent(parent) {
 	accel = nullptr;
 }
 Scene::~Scene() {
@@ -55,7 +60,14 @@ void Scene::upload(OptiX::Context const* context_optix) {
 	accel = new OptiX::AccelerationStructure(context_optix,builder);
 }
 
+Scene::InterfaceGPU Scene::get_interface(size_t camera_index) const {
+	return { cameras[camera_index]->get_interface(), parent->materials_gpu->ptr_integral, accel->handle };
+}
 
+
+SceneGraph::SceneGraph() {
+	materials_gpu = nullptr;
+}
 SceneGraph::~SceneGraph() {
 	for (Camera const* camera : cameras) delete camera;
 
@@ -65,6 +77,12 @@ SceneGraph::~SceneGraph() {
 
 	for (Object const* object : objects) delete object;
 
+	delete materials_gpu;
+	for (MaterialBase const* material : materials) delete material;
+	for (Texture2D    const* texture  : textures ) delete texture;
+	for (Image2D      const* image    : images   ) delete image;
+	for (Sampler      const* sampler  : samplers ) delete sampler;
+
 	for (DataBlock::AccessorBase const* datablock_accessor : datablock_accessors) delete datablock_accessor;
 	for (DataBlock::View         const* datablock_view     : datablock_views    ) delete datablock_view;
 	for (DataBlock               const* datablock          : datablocks         ) delete datablock;
@@ -73,6 +91,19 @@ SceneGraph::~SceneGraph() {
 void SceneGraph::upload(OptiX::Context const* context_optix) {
 	//Upload data buffers
 	for (DataBlock* datablock : datablocks) datablock->upload();
+
+	//Upload images and textures
+	for (Image2D*   image   : images  ) image->  upload();
+	for (Texture2D* texture : textures) texture->upload_cudaoptix();
+	{
+		CUDA::BufferCPUManaged tmp(materials.size()*sizeof(MaterialBase::InterfaceGPU));
+		MaterialBase::InterfaceGPU* ptr = static_cast<MaterialBase::InterfaceGPU*>(tmp.ptr);
+		for (MaterialBase const* material : materials) {
+			material->fill_interface(ptr);
+			++ptr;
+		}
+		materials_gpu = new CUDA::BufferGPUManaged(tmp);
+	}
 
 	//Build and upload objects' acceleration structures
 	for (Object* object : objects) object->upload(context_optix);

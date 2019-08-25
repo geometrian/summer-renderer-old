@@ -10,9 +10,14 @@
 namespace Summer { namespace Scene {
 
 
-//class Material;
+class Image2D;
+class MaterialBase;
+class Sampler;
+class Texture2D;
+
 class Object;
 class Scene;
+class SceneGraph;
 
 
 class Node final {
@@ -56,6 +61,8 @@ class Node final {
 
 class Scene final {
 	public:
+		SceneGraph const*const parent;
+
 		std::vector<Node*> root_nodes;
 
 		std::vector<Camera*> cameras;
@@ -66,18 +73,18 @@ class Scene final {
 			public:
 				Camera::InterfaceGPU camera;
 
+				CUdeviceptr materials;
+
 				OptixTraversableHandle traversable;
 		};
 
 	public:
-		Scene();
+		explicit Scene(SceneGraph const* parent);
 		~Scene();
 
 		void upload(OptiX::Context const* context_optix);
 
-		InterfaceGPU get_interface(size_t camera_index) const {
-			return { cameras[camera_index]->get_interface(), accel->handle };
-		}
+		InterfaceGPU get_interface(size_t camera_index) const;
 };
 
 
@@ -86,6 +93,12 @@ class SceneGraph final {
 		std::vector<DataBlock*              > datablocks;
 		std::vector<DataBlock::View*        > datablock_views;
 		std::vector<DataBlock::AccessorBase*> datablock_accessors;
+
+		std::vector<Sampler*     > samplers;
+		std::vector<Image2D*     > images;
+		std::vector<Texture2D*   > textures;
+		std::vector<MaterialBase*> materials;
+		CUDA::BufferGPUManaged* materials_gpu;
 
 		std::vector<Object*> objects;
 
@@ -96,7 +109,7 @@ class SceneGraph final {
 		std::vector<Camera*> cameras;
 
 	public:
-		SceneGraph() = default;
+		SceneGraph();
 		~SceneGraph();
 
 		void upload(OptiX::Context const* context_optix);

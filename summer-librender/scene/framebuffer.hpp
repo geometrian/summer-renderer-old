@@ -3,7 +3,7 @@
 
 #include "../stdafx.hpp"
 
-#include "texture.hpp"
+#include "materials/texture.hpp"
 
 
 namespace Summer { namespace Scene {
@@ -13,10 +13,10 @@ class Framebuffer final {
 	public:
 		Vec2zu const res;
 
-		template<GLint fmt_internal> class Layer final {
+		template<Image2D::FORMAT fmt> class Layer final {
 			friend class Framebuffer;
 			public:
-				Texture2D<fmt_internal> texture;
+				Texture2D texture;
 				CUDA::WritePixelBufferObject2D pbo;
 
 			public:
@@ -29,10 +29,10 @@ class Framebuffer final {
 		class Layers final {
 			friend class Framebuffer;
 			public:
-				Layer<GL_RGBA8 > rgba;
-				//Layer<GL_RGB8  > albedo;
-				//Layer<GL_RGB32F> normal;
-				//Layer<GL_R32F  > depth;
+				Layer<Image2D::FORMAT::sRGB8_A8 > rgba;
+				//Layer<Image2D::FORMAT::lRGB32F  > albedo;
+				//Layer<Image2D::FORMAT::VEC3_32F > normal;
+				//Layer<Image2D::FORMAT::DEPTH32F > depth;
 
 			public:
 				explicit Layers(Vec2zu const& res) : rgba(res) {}//,albedo(res),normal(res),depth(res) {}

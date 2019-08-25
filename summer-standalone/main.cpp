@@ -5,40 +5,62 @@ static Vec2zu const res = Vec2zu(1024,768);
 //static Vec2zu const res = Vec2zu(2560,1440);
 
 
-#define SCENE_NUMBER 0
-#if   SCENE_NUMBER == 0
+#define SCENE_NUMBER 1
+#if   SCENE_NUMBER == -1
+	#define SCENE_NAME "AntiqueCamera"
+	static float camera_angles[2] = { 30.0f, 20.0f };
+	static float camera_radius = 10.0f;
+	static Vec3f camera_center( 0.0f, 6.0f, 0.0f );
+#elif SCENE_NUMBER == 0
 	#define SCENE_NAME "BarramundiFish"
-	static float camera_angles[2] = { 60.0f, 22.5f };
-	static float camera_radius = 1.0f;
+	static float camera_angles[2] = { 150.0f, 10.0f };
+	static float camera_radius = 0.6f;
 	static Vec3f camera_center( 0.0f, 0.1f, 0.0f );
 #elif SCENE_NUMBER == 1
+	//#define SCENE_NAME "BoomBox"
+	#define SCENE_NAME "BoomBoxWithAxes"
+	static float camera_angles[2] = { 30.0f, 20.0f };
+	static float camera_radius = 0.05f;
+	static Vec3f camera_center( 0.0f, 0.01f, 0.0f );
+#elif SCENE_NUMBER == 2
 	//#define SCENE_NAME "Box"
-	#define SCENE_NAME "BoxInterleaved"
+	//#define SCENE_NAME "BoxInterleaved"
+	#define SCENE_NAME "BoxTextured"
 	static float camera_angles[2] = { 60.0f, 22.5f };
 	static float camera_radius = 2.0f;
 	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
-#elif SCENE_NUMBER == 2
+#elif SCENE_NUMBER == 3
 	#define SCENE_NAME "Buggy"
 	static float camera_angles[2] = { 60.0f, 22.5f };
 	static float camera_radius = 5.0f;
 	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
-#elif SCENE_NUMBER == 3
+#elif SCENE_NUMBER == 4
 	#define SCENE_NAME "DamagedHelmet"
 	static float camera_angles[2] = { 60.0f, 22.5f };
 	static float camera_radius = 5.0f;
 	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
-#elif SCENE_NUMBER == 4
+#elif SCENE_NUMBER == 5
 	#define SCENE_NAME "Duck"
 	static float camera_angles[2] = { 60.0f, 22.5f };
-	static float camera_radius = 400.0f;
-	static Vec3f camera_center( 0.0f, 70.0f, 0.0f );
-#elif SCENE_NUMBER == 5
+	static float camera_radius = 4.0f;
+	static Vec3f camera_center( 0.0f, 0.7f, 0.0f );
+#elif SCENE_NUMBER == 6
+	#define SCENE_NAME "MetalRoughSpheres"
+	static float camera_angles[2] = { 60.0f, 22.5f };
+	static float camera_radius = 5.0f;
+	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
+#elif SCENE_NUMBER == 7
 	#define SCENE_NAME "ReciprocatingSaw"
 	static float camera_angles[2] = { 60.0f, 22.5f };
 	static float camera_radius = 5.0f;
 	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
-#elif SCENE_NUMBER == 6
+#elif SCENE_NUMBER == 8
 	#define SCENE_NAME "SimpleMeshes"
+	static float camera_angles[2] = { 60.0f, 22.5f };
+	static float camera_radius = 5.0f;
+	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
+#elif SCENE_NUMBER == 9
+	#define SCENE_NAME "Sponza"
 	static float camera_angles[2] = { 60.0f, 22.5f };
 	static float camera_radius = 5.0f;
 	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
@@ -141,7 +163,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 			glfwPollEvents();
 
 			Summer::Scene::Camera* camera = scenegraph->cameras.back();
-			camera->lookat.position = Vec3f(
+			camera->lookat.position = camera_center + Vec3f(
 				camera_radius * cosf(glm::radians(camera_angles[0])) * cosf(glm::radians(camera_angles[1])),
 				camera_radius                                        * sinf(glm::radians(camera_angles[1])),
 				camera_radius * sinf(glm::radians(camera_angles[0])) * cosf(glm::radians(camera_angles[1]))

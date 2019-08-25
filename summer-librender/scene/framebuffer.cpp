@@ -18,18 +18,22 @@ for (size_t i=0;i<res[0];++i) {
 #endif
 
 
-template<GLint fmt_internal> Framebuffer::Layer<fmt_internal>::Layer(Vec2zu const& res) :
-	texture(res),pbo(res,TextureFormatInfo<fmt_internal>::sizeof_texel)
-{}
-
-template<GLint fmt_internal> void Framebuffer::Layer<fmt_internal>::_update_texture() {
-	texture.copy_from_pbo(&pbo);
+template<Image2D::FORMAT fmt> Framebuffer::Layer<fmt>::Layer(Vec2zu const& res) :
+	texture(res),
+	pbo(res,ImageFormatInfo<fmt>::sizeof_texel)
+{
+	texture.set_gpu_opengl<fmt>();
 }
 
-template class Framebuffer::Layer<GL_R32F  >;
-template class Framebuffer::Layer<GL_RGB8  >;
-template class Framebuffer::Layer<GL_RGB32F>;
-template class Framebuffer::Layer<GL_RGBA8 >;
+template<Image2D::FORMAT fmt> void Framebuffer::Layer<fmt>::_update_texture() {
+	texture.copy_pbo_to_opengl(&pbo);
+}
+
+template class Framebuffer::Layer<Image2D::FORMAT::sRGB8   >;
+template class Framebuffer::Layer<Image2D::FORMAT::sRGB8_A8>;
+template class Framebuffer::Layer<Image2D::FORMAT::DEPTH32F>;
+template class Framebuffer::Layer<Image2D::FORMAT::lRGB32F >;
+template class Framebuffer::Layer<Image2D::FORMAT::lRGBA32F>;
 
 
 void Framebuffer::Layers::_launch_prepare(CUDA::Context const* context_cuda) {
@@ -73,7 +77,7 @@ void Framebuffer::draw() const {
 
 	glEnable(GL_FRAMEBUFFER_SRGB);
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, layers.rgba.texture.gl_handle);
+	glBindTexture(GL_TEXTURE_2D, layers.rgba.texture.data.gpu_gl.handle);
 
 	#if 1
 	glBegin(GL_QUADS);

@@ -9,6 +9,9 @@
 namespace Summer { namespace Scene {
 
 
+class MaterialBase;
+
+
 class Object final {
 	public:
 		std::string const name;
@@ -81,10 +84,12 @@ class Object final {
 				};
 				Indices indices;
 
-				//Material* material;
+				MaterialBase const* material;
+				size_t material_index;
 
 			private:
 				CUdeviceptr mutable _ptrs_vbuffers[1];
+				CUdeviceptr mutable _ptr_ibuffer  [1];
 
 			public:
 				explicit Mesh(TYPE_PRIMS type_prims);

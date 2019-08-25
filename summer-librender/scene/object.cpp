@@ -112,22 +112,26 @@ void Object::Mesh::set_ref_indices(DataBlock::Accessor<uint32_t> const* accessor
 void Object::Mesh::_register_for_build(OptiX::AccelerationStructure::BuilderTriangles* builder) const {
 	assert_term(buffers_descriptor.has_verts!=0u,"Must have at-least vertices in object mesh!");
 
+	_ptrs_vbuffers[0] = verts->get_ptr_gpu().ptr_integral;
+	assert_term(_ptrs_vbuffers[0]!=reinterpret_cast<CUdeviceptr>(nullptr),"Implementation error!");
 	switch (buffers_descriptor.type_indices) {
 		case 0b00:
 			builder->add_mesh_triangles_basic(
-				{ _ptrs_vbuffers[0] = verts->get_ptr_gpu().ptr_integral, verts->view->stride, verts->num_elements }
+				{ _ptrs_vbuffers, verts->view->stride,       verts->num_elements       }
 			);
 			break;
 		case 0b01:
+			_ptr_ibuffer[0] = indices.u16->get_ptr_gpu().ptr_integral;
 			builder->add_mesh_triangles_indexed_u16(
-				{ _ptrs_vbuffers[0] = verts->get_ptr_gpu().ptr_integral, verts->view->stride, verts->num_elements },
-				{ indices.u16->get_ptr_gpu().ptr_integral, indices.u16->view->stride, indices.u16->num_elements }
+				{ _ptrs_vbuffers, verts->view->stride,       verts->num_elements       },
+				{ _ptr_ibuffer,   indices.u16->view->stride, indices.u16->num_elements }
 			);
 			break;
 		case 0b10:
+			_ptr_ibuffer[0] = indices.u32->get_ptr_gpu().ptr_integral;
 			builder->add_mesh_triangles_indexed_u32(
-				{ _ptrs_vbuffers[0] = verts->get_ptr_gpu().ptr_integral, verts->view->stride, verts->num_elements },
-				{ indices.u32->get_ptr_gpu().ptr_integral, indices.u32->view->stride, indices.u32->num_elements }
+				{ _ptrs_vbuffers, verts->view->stride,       verts->num_elements       },
+				{ _ptr_ibuffer,   indices.u32->view->stride, indices.u32->num_elements }
 			);
 			break;
 		nodefault;

@@ -46,19 +46,15 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 
 		OptiX::ShaderBindingTable::Builder<DataSBT_Raygen,DataSBT_Miss,DataSBT_HitOps> sbt_builder;
 		{
-			DataSBT_Raygen entry_raygen;
-			sbt_builder.raygen = std::make_pair( _optix.program_raygen, &entry_raygen );
+			sbt_builder.raygen = std::make_pair( _optix.program_raygen, new DataSBT_Raygen );
 
-			DataSBT_Miss entry_miss_primary;
-			//DataSBT_Miss entry_miss_shadow;
-			sbt_builder.miss.emplace_back(std::make_pair( _optix.program_miss, &entry_miss_primary ));
-			//sbt_builder.miss.emplace_back(std::make_pair( _optix.program_miss, &entry_miss_shadow  ));
+			sbt_builder.miss.emplace_back(std::make_pair( _optix.program_miss, new DataSBT_Miss ));
+			//sbt_builder.miss.emplace_back(std::make_pair( _optix.program_miss, new DataSBT_Miss  ));
 
 			#if 1
 				for (Scene::Object const* object : scenegraph->objects) {
 					for (Scene::Object::Mesh const* mesh : object->meshes) {
-						DataSBT_HitOps entry_hitops(mesh);
-						sbt_builder.hitsops.emplace_back(std::make_pair( _optix.programs_hitops, &entry_hitops ));
+						sbt_builder.hitsops.emplace_back(std::make_pair( _optix.programs_hitops, new DataSBT_HitOps(mesh) ));
 					}
 				}
 			#else
@@ -80,6 +76,9 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 			#endif
 		}
 		_optix.sbt = new OptiX::ShaderBindingTable(sbt_builder);
+		                                             delete sbt_builder.raygen.second;
+		for (auto const& iter : sbt_builder.miss   ) delete iter.              second;
+		for (auto const& iter : sbt_builder.hitsops) delete iter.              second;
 
 		_optix.pipeline = new OptiX::Pipeline( _optix.context, pipeline_opts, _optix.sbt );
 	}

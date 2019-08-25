@@ -28,11 +28,10 @@ class AccelerationStructure final {
 	public:
 		class BuilderTriangles final : public _BuilderBase {
 			private:
-				std::vector<CUdeviceptr> _verts_ptrs;
 				OptixGeometryFlags const _geom_flags[1] = { OptixGeometryFlags::OPTIX_GEOMETRY_FLAG_NONE };
 			public:
 				class BufferAccessor final { public:
-					CUdeviceptr ptr; size_t stride; size_t count;
+					CUdeviceptr* ptrs_arr; size_t stride; size_t count;
 				};
 
 			public:

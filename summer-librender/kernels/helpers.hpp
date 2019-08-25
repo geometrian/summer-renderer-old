@@ -6,7 +6,8 @@
 namespace Summer {
 
 
-inline static __device__ float3 to_float3(Vec3f const& vec) { return { vec.x, vec.y, vec.z }; }
+inline static __device__ float3 to_float3  (Vec3f  const& vec) { return { vec.x, vec.y, vec.z }; }
+inline static __device__ Vec3f  from_float3(float3 const& vec) { return { vec.x, vec.y, vec.z }; }
 
 template<typename Tout, typename Tin>
 inline static __device__ Tout bit_cast(Tin const& value) {
@@ -42,6 +43,10 @@ inline static __device__ uint32_t pack_sRGB_A(Vec4f const& srgb_a) {
 	Vec4u discrete = Vec4u(glm::clamp( Vec4i(srgb_a * 255.0f), Vec4i(0),Vec4i(255) ));
 	return (discrete.a<<24) | (discrete.b<<16) | (discrete.g<<8) | discrete.r;
 }
+
+
+template<typename T>
+inline static __device__ T square(T const& value) { return value*value; }
 
 
 }
