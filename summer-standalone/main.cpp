@@ -5,7 +5,7 @@ static Vec2zu const res = Vec2zu(1024,768);
 //static Vec2zu const res = Vec2zu(2560,1440);
 
 
-#define SCENE_NUMBER 1
+#define SCENE_NUMBER 0
 #if   SCENE_NUMBER == -1
 	#define SCENE_NAME "AntiqueCamera"
 	static float camera_angles[2] = { 30.0f, 20.0f };
@@ -66,6 +66,8 @@ static Vec2zu const res = Vec2zu(1024,768);
 	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
 #endif
 
+static char const* integrator_name = "pathtrace";
+
 
 #ifdef BUILD_DEBUG
 inline static void _callback_err_glfw(int /*error*/, char const* description) {
@@ -75,9 +77,29 @@ inline static void _callback_err_glfw(int /*error*/, char const* description) {
 
 inline static void _callback_key(GLFWwindow* window, int key,int /*scancode*/, int action, int mods) {
 	if (action==GLFW_PRESS) {
+		bool alt_pressed =
+			glfwGetKey(window,GLFW_KEY_LEFT_ALT )==GLFW_PRESS ||
+			glfwGetKey(window,GLFW_KEY_RIGHT_ALT)==GLFW_PRESS
+		;
+
 		switch (key) {
 			case GLFW_KEY_ESCAPE:
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
+				break;
+			case GLFW_KEY_A:
+				if (alt_pressed) integrator_name="albedo";
+				break;
+			case GLFW_KEY_B:
+				if (alt_pressed) integrator_name="tri-bary";
+				break;
+			case GLFW_KEY_N:
+				if (alt_pressed) integrator_name="normals";
+				break;
+			case GLFW_KEY_P:
+				if (alt_pressed) integrator_name="pathtrace";
+				break;
+			case GLFW_KEY_T:
+				if (alt_pressed) integrator_name="texcs";
 				break;
 			default:
 				break;
@@ -164,14 +186,14 @@ int main(int /*argc*/, char* /*argv*/[]) {
 
 			Summer::Scene::Camera* camera = scenegraph->cameras.back();
 			camera->lookat.position = camera_center + Vec3f(
-				camera_radius * cosf(glm::radians(camera_angles[0])) * cosf(glm::radians(camera_angles[1])),
-				camera_radius                                        * sinf(glm::radians(camera_angles[1])),
-				camera_radius * sinf(glm::radians(camera_angles[0])) * cosf(glm::radians(camera_angles[1]))
+				camera_radius * std::cos(glm::radians(camera_angles[0])) * std::cos(glm::radians(camera_angles[1])),
+				camera_radius                                            * std::sin(glm::radians(camera_angles[1])),
+				camera_radius * std::sin(glm::radians(camera_angles[0])) * std::cos(glm::radians(camera_angles[1]))
 			);
 			camera->lookat.center = camera_center;
 			camera->lookat.up = Vec3f(0,1,0);
 
-			renderer.render( 0, 0, 0.0f );
+			renderer.render( 0, 0, 0.0f, integrator_name );
 
 			camera->framebuffer.draw();
 

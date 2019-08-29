@@ -191,14 +191,14 @@ Renderer::~Renderer() {
 	}
 }
 
-void Renderer::render(size_t scene_index, size_t camera_index, float timestamp) const {
+void Renderer::render(size_t scene_index, size_t camera_index, float timestamp, std::string const& integrator_name) const {
 	Scene::Scene const* scene = scenegraph->scenes[scene_index];
 	Scene::Framebuffer& framebuffer = scene->cameras[camera_index]->framebuffer;
 
 	framebuffer.launch_prepare(_cuda.context);
 
 	Scene::Scene::InterfaceGPU const& interface_gpu = scene->get_interface(camera_index);
-	integrators.at("pathtrace")->render(interface_gpu);
+	integrators.at(integrator_name)->render(interface_gpu);
 
 	framebuffer.launch_finish();
 }

@@ -57,7 +57,7 @@ class Renderer final {
 		explicit Renderer(Scene::SceneGraph* scenegraph);
 		~Renderer();
 
-		void render(size_t scene_index, size_t camera_index, float timestamp) const;
+		void render(size_t scene_index, size_t camera_index, float timestamp, std::string const& integrator_name) const;
 		//void render_start() {}
 		//void render_stop () {}
 		//void render_wait () {}
