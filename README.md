@@ -1,10 +1,10 @@
 # Summer Renderer
 
-<ul style="display:grid; grid-gap:5px; grid-template-columns: 1fr 1fr 1fr;">
-  <li><img style="height: 100%; width: 100%; object-fit: contain" src="https://graphics.geometrian.com/summer/gallery/1.png"/></li>
-  <li><img style="height: 100%; width: 100%; object-fit: contain" src="https://graphics.geometrian.com/summer/gallery/2.png"/></li>
-  <li><img style="height: 100%; width: 100%; object-fit: contain" src="https://graphics.geometrian.com/summer/gallery/3.png"/></li>
-</ul>
+<table style="width:100%"><tr>
+	<td style="padding:0px"><img src="https://graphics.geometrian.com/summer/gallery/1.png"/></td>
+	<td style="padding:0px"><img src="https://graphics.geometrian.com/summer/gallery/2.png"/></td>
+	<td style="padding:0px"><img src="https://graphics.geometrian.com/summer/gallery/3.png"/></td>
+</tr></table>
 
 
 
