@@ -6,7 +6,7 @@
 #include "scene/scenegraph.hpp"
 
 
-extern "C" unsigned char const embedded_ptx_code[];
+extern "C" unsigned char const ptx_embed___summer_librender___kernels___main_cu[];
 
 
 namespace Summer {
@@ -33,7 +33,7 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 	//Load shaders, fill binding table, build shading pipeline
 	{
 
-		_optix.module = new OptiX::CompiledModule(_optix.context,pipeline_opts,reinterpret_cast<char const*>(embedded_ptx_code));
+		_optix.module = new OptiX::CompiledModule(_optix.context,pipeline_opts,reinterpret_cast<char const*>(ptx_embed___summer_librender___kernels___main_cu));
 
 		_optix.program_raygen  = new OptiX::ProgramRaygen ( _optix.context, _optix.module,"__raygen__primary" );
 		_optix.program_miss    = new OptiX::ProgramMiss   ( _optix.context, _optix.module,"__miss__primary"   );

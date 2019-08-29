@@ -10,26 +10,32 @@ project(summer-renderer)
 
 #CMake and generation configuration
 
-set(helper_cmake_dir "${PROJECT_SOURCE_DIR}/cmake/")
+set(cmake_helpers_dir "${PROJECT_SOURCE_DIR}/cmake/")
 set(CMAKE_MODULE_PATH
-	${CMAKE_MODULE_PATH}
-	${helper_cmake_dir}
+	${CMAKE_MODULE_PATH} ${cmake_helpers_dir}
 )
-include(${helper_cmake_dir}/configure_build_type.cmake)
-include(${helper_cmake_dir}/configure_optix.cmake)
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo" CACHE STRING "" FORCE )
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+
+set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo" CACHE STRING "" FORCE)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 #set(CMAKE_SUPPRESS_REGENERATION true)
 #set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "")
 
-if (MSVC)
+if(MSVC)
 	#Ignore warnings about `throw`ing from a destructor.  This is allowed by the C++ standard,
 	#	although it must be explicitly tagged `noexcept(false)`.  We don't do that, but it's fine
-	#	because this should be fatal.
+	#	because we treat this situation as fatal anyway.
 	add_compile_options(/wd4297)
+
+	#Stupid macros
+	add_definitions(-DNOMINMAX)
+	#Reasonable character set for API calls
+	add_definitions(-D_UNICODE)
 endif(MSVC)
 
 
@@ -41,83 +47,74 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 #	No, Microsoft, the standard library is *not* deprecated.
-add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+if(MSVC)
+	add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+endif(MSVC)
 
 
 
 #Renderer configuration and arguments
 
-option(SUPPORT_WINDOWED "Support a windowed mode to show progress (req. GLFW)" ON)
+option(SUMMER_SUPPORT_WINDOWED "Support a windowed mode to show progress (req. GLFW)" ON)
 
-if(SUPPORT_WINDOWED)
-	add_definitions("-DSUPPORT_WINDOWED")
-	set(WINDOW_ARG " --window")
+if(SUMMER_SUPPORT_WINDOWED)
+	add_definitions("-DSUMMER_SUPPORT_WINDOWED")
+	set(SUMMER_WINDOW_ARG " --window")
 else()
-	set(WINDOW_ARG "")
+	set(SUMMER_WINDOW_ARG "")
 endif()
-#message(STATUS "${WINDOW_ARG}")
 
 
 
 #Find required packages
 
-#	CUDA
-find_package(CUDA 10 REQUIRED)
-message(STATUS "CUDA     at ${CUDA_TOOLKIT_ROOT_DIR}")
-mark_as_advanced(CUDA_HOST_COMPILER)
-mark_as_advanced(CUDA_SDK_ROOT_DIR)
-mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
-include_directories("${CUDA_TOOLKIT_ROOT_DIR}/include")
-set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${CUDA_LIBRARIES})
-set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${CUDA_CUDA_LIBRARY})
+#	OptiX
+include("${cmake_helpers_dir}/find-config-OptiX.cmake")
 
-#	GLFW
-if(SUPPORT_WINDOWED)
-	find_package(GLFW3 REQUIRED)
-	message(STATUS "GLFW3    at ${GLFW3_INCLUDE_DIR}")
-	mark_as_advanced(GLFW3_DIR)
-	include_directories(${GLFW3_INCLUDE_DIR})
-	set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${GLFW3_LIBRARY})
+#	CUDA
+include("${cmake_helpers_dir}/find-config-CUDA.cmake")
+
+#	GLFW3
+if(SUMMER_SUPPORT_WINDOWED)
+	include("${cmake_helpers_dir}/find-config-GLFW3.cmake")
+endif()
+
+#	GLAD
+include("${cmake_helpers_dir}/find-config-GLAD.cmake")
+
+#	OpenGL
+if(SUMMER_SUPPORT_WINDOWED)
+	include("${cmake_helpers_dir}/find-config-OpenGL.cmake")
 endif()
 
 #	GLM
-find_package(GLM REQUIRED)
-message(STATUS "GLM      at ${GLM_INCLUDE_DIR}")
-include_directories(${GLM_INCLUDE_DIR})
-
-#	GLAD
-find_package(GLAD REQUIRED)
-message(STATUS "GLAD     at ${GLAD_INCLUDE_DIR}")
-include_directories(${GLAD_INCLUDE_DIR})
-set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${GLAD_LIBRARY})
+include("${cmake_helpers_dir}/find-config-GLM.cmake")
 
 #	TinyGLTF
-find_package(TinyGLTF REQUIRED)
-message(STATUS "TinyGLTF at ${TinyGLTF_INCLUDE_DIR}")
-include_directories(${TinyGLTF_INCLUDE_DIR})
-
-#	OpenGL
-if(SUPPORT_WINDOWED)
-	find_package(OpenGL REQUIRED)
-	message(STATUS "OpenGL found")
-	set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${OPENGL_LIBRARIES})
-	set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${OPENGL_gl_LIBRARY})
-endif()
-
-#	OptiX
-find_package(OptiX 7 REQUIRED)
-message(STATUS "OptiX at ${OptiX_INSTALL_DIR}")
-include_directories(${OptiX_INCLUDE})
-set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${optix_LIBRARY})
+include("${cmake_helpers_dir}/find-config-TinyGLTF.cmake")
 
 #	Threads
 if (UNIX)
-	set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} pthread)
+	include("${cmake_helpers_dir}/find-config-threads.cmake")
 endif()
+
+#	Output
+message(STATUS "OptiX    at ${OptiX_INSTALL_DIR}")
+message(STATUS "CUDA     at ${CUDA_TOOLKIT_ROOT_DIR}")
+message(STATUS "GLFW3    at ${GLFW3_INCLUDE_DIR}")
+message(STATUS "GLAD     at ${GLAD_INCLUDE_DIR}")
+message(STATUS "GLM      at ${GLM_INCLUDE_DIR}")
+message(STATUS "TinyGLTF at ${TinyGLTF_INCLUDE_DIR}")
+
+
+
+
 
 
 
 #Renderer components
+
+include("${cmake_helpers_dir}/helper-functions.cmake")
 
 add_subdirectory(summer-libbase)
 

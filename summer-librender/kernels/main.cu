@@ -303,7 +303,7 @@ extern "C" __global__ void __raygen__primary() {
 
 		to_float3(pos), to_float3(out),
 
-		0.0f, 1e20f,//std::numeric_limits<float>::infinity(),
+		0.0f, std::numeric_limits<float>::infinity(),
 		0.0f,
 
 		OptixVisibilityMask(0b11111111),
