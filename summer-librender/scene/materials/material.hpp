@@ -109,6 +109,8 @@ class ShadePoint final {
 
 		Vec3f const bary;
 
+		Vec3f const pos;
+
 		Vec2f const texc0;
 
 		MaterialBase::InterfaceGPU const*const material;

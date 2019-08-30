@@ -5,7 +5,7 @@ namespace Summer { namespace Scene {
 
 
 Object::Mesh::Mesh(TYPE_PRIMS type_prims) :
-	type_prims(type_prims), accel(nullptr)
+	type_prims(type_prims)
 {
 	buffers_descriptor.packed = 0u;
 
@@ -19,9 +19,6 @@ Object::Mesh::Mesh(TYPE_PRIMS type_prims) :
 	colors0.u8x3 = nullptr;
 
 	indices.u16 = nullptr;
-}
-Object::Mesh::~Mesh() {
-	delete accel;
 }
 
 void Object::Mesh::set_ref_verts(DataBlock::Accessor<Vec3f> const* accessor) {
@@ -112,14 +109,13 @@ void Object::Mesh::set_ref_indices(DataBlock::Accessor<uint32_t> const* accessor
 	buffers_descriptor.type_indices = accessor!=nullptr?0b10u:0b00u;
 }
 
-void Object::Mesh::upload(OptiX::Context const* context_optix) {
+void Object::Mesh::upload(OptiX::AccelerationStructure::BuilderTriangles& builder) {
 	assert_term(buffers_descriptor.has_verts!=0u,"Must have at-least vertices in object mesh!");
 
 	_ptrs_vbuffers[0] = verts->get_ptr_gpu().ptr_integral;
 	assert_term(_ptrs_vbuffers[0]!=reinterpret_cast<CUdeviceptr>(nullptr),"Implementation error!");
 
 	//TODO: Simplify.
-	OptiX::AccelerationStructure::BuilderTriangles builder;
 	switch (buffers_descriptor.type_indices) {
 		case 0b00:
 			builder.add_mesh_triangles_basic(
@@ -142,16 +138,15 @@ void Object::Mesh::upload(OptiX::Context const* context_optix) {
 			break;
 		nodefault;
 	}
-	builder.finish();
-
-	accel = new OptiX::AccelerationStructure(context_optix,builder);
 }
 
 
 Object::Object(std::string const& name) :
-	name(name)
+	name(name), accel(nullptr)
 {}
 Object::~Object() {
+	delete accel;
+
 	for (Mesh const* mesh : meshes) delete mesh;
 }
 
@@ -161,8 +156,18 @@ Object::Mesh* Object::add_new_mesh(Mesh::TYPE_PRIMS type_prims) {
 	return new_mesh;
 }
 
-void Object::upload(OptiX::Context const* context_optix) {
-	for (Mesh* mesh : meshes) mesh->upload(context_optix);
+size_t Object::upload(OptiX::Context const* context_optix, size_t num_meshes_preceding) {
+	assert_term(accel==nullptr,"Acceleration structure already exists!");
+	this->num_meshes_preceding = num_meshes_preceding;
+
+	OptiX::AccelerationStructure::BuilderTriangles builder;
+	for (Mesh* mesh : meshes) mesh->upload(builder);
+	builder.finish();
+
+	accel = new OptiX::AccelerationStructure(context_optix,builder);
+
+	num_meshes_preceding += meshes.size();
+	return num_meshes_preceding;
 }
 
 

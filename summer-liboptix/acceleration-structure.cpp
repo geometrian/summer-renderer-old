@@ -63,8 +63,6 @@ void AccelerationStructure::BuilderTriangles::finish() /*override*/ {
 }
 
 
-static unsigned int _offset = 0u;
-
 AccelerationStructure::BuilderInstances::BuilderInstances() : _instances_gpu(nullptr) {
 	_build_inputs.emplace_back();
 }
@@ -72,7 +70,7 @@ AccelerationStructure::BuilderInstances::~BuilderInstances() {
 	delete _instances_gpu;
 }
 
-void AccelerationStructure::BuilderInstances::add_instance(CUdeviceptr child_traversable, Mat3x4f const& transform) {
+void AccelerationStructure::BuilderInstances::add_instance(size_t object_sbt_offset, CUdeviceptr object_traversable, Mat3x4f const& transform) {
 	_instances.emplace_back();
 	OptixInstance& instance = _instances.back();
 
@@ -85,13 +83,13 @@ void AccelerationStructure::BuilderInstances::add_instance(CUdeviceptr child_tra
 
 	instance.instanceId = static_cast<unsigned int>(_instances.size());
 
-	instance.sbtOffset = _offset++;
+	instance.sbtOffset = static_cast<unsigned int>(object_sbt_offset);
 
-	instance.visibilityMask = 0xFF;
+	instance.visibilityMask = 0xFFu;
 
 	instance.flags = OptixInstanceFlags::OPTIX_INSTANCE_FLAG_NONE;
 
-	instance.traversableHandle = child_traversable;
+	instance.traversableHandle = object_traversable;
 }
 
 void AccelerationStructure::BuilderInstances::finish() /*override*/ {

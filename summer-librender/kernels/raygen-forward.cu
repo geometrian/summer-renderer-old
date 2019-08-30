@@ -39,7 +39,7 @@ extern "C" __global__ void __raygen__forward() {
 		OptixVisibilityMask(0b11111111),
 
 		OptixRayFlags::OPTIX_RAY_FLAG_DISABLE_ANYHIT,
-		0u, 1u,
+		0u, unsigned int(SUMMER_MAX_RAYTYPES),
 		0u,
 
 		index

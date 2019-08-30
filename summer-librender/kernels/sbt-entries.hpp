@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 
 #include "../stdafx.hpp"
@@ -7,6 +7,56 @@
 
 
 namespace Summer {
+
+
+/*
+The structure of the shader binding table for each integrator is fairly straightforward, but still
+bears documentation.  Using the example of two objects, each with two meshes, and two raytypes for
+the integrator (the actual number of raytypes is `SUMMER_MAX_RAYTYPES`; see below):
+
+	╔════════════════════╤═════════════════════════════╗
+	║ Description        │ Shader Table Entries        ║
+	╠════════════════════╪═════════════════════════════╣
+	║ Ray Generation     │ Raytype 0                   ║
+	╟────────────────────┼─────────────────────────────╢
+	║ Miss Callback      │ Raytype 0                   ║
+	║                    │ Raytype 1                   ║
+	╟────────────────────┼─────────────────────────────╢
+	║ Hit Operations     │ Object 0, Mesh 0, Raytype 0 ║
+	║                    │ Object 0, Mesh 0, Raytype 1 ║
+	║                    │ Object 0, Mesh 1, Raytype 0 ║
+	║                    │ Object 0, Mesh 1, Raytype 1 ║
+	║                    │ Object 1, Mesh 0, Raytype 0 ║
+	║                    │ Object 1, Mesh 0, Raytype 1 ║
+	║                    │ Object 1, Mesh 1, Raytype 0 ║
+	║                    │ Object 1, Mesh 1, Raytype 1 ║
+	╚════════════════════╧═════════════════════════════╝
+
+For accessing the hit operations entries, OptiX uses the following formula:
+
+	start + stride*(
+		(ray contribution) +
+		(geometry multiplier)*(geometry contribution) +
+		(instance contribution)
+	)
+
+The ray contribution is the ray type.  The geometry contribution is the mesh index, since the lower-
+level acceleration structures are built for each object, each containing individual meshes.  The
+geometry multiplier is the number of ray types.  The instance contribution is the number of entries
+which have appeared before this object.
+
+Note that the order, interleaving the entries by raytype, means that the offset of each object (the
+instance contribution) depends on the number of raytypes.  Since this is baked into the upper-level
+acceleration structure, a separate upper-level structure must be built for each unique number of ray
+types an integrator could need.  This is annoying.  Swapping it around so that the ray contribution
+forms the larger jump doesn't work: the ray contribution is required to be much smaller (8 bits vs.
+24, it seems).
+
+For simplicity, the largest number of ray types required by any integrator is specified as
+`SUMMER_MAX_RAYTYPES`, and then *every* table uses this, with any additional ray types being filled
+with zero records.  This is wasteful for the (typically simpler) integrators requiring fewer ray
+types, but the implementation is greatly simplified and clarified.
+*/
 
 
 class DataSBT_Raygen final {

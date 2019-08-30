@@ -7,3 +7,6 @@
 #include "../summer-libutil/include.hpp"
 
 #include <cmath>
+
+
+#define SUMMER_MAX_RAYTYPES 2

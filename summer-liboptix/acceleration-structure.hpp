@@ -57,7 +57,7 @@ class AccelerationStructure final {
 				BuilderInstances();
 				~BuilderInstances();
 
-				void add_instance(CUdeviceptr child_traversable, Mat3x4f const& transform);
+				void add_instance(size_t object_sbt_offset, CUdeviceptr object_traversable, Mat3x4f const& transform);
 
 				virtual void finish() override;
 		};

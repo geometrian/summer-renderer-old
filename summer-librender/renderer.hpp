@@ -32,10 +32,6 @@ class Renderer final {
 	public:
 		class Integrator final {
 			public:
-				OptiX::ProgramRaygen* const program_raygen;
-				OptiX::ProgramMiss*   const program_miss;
-				OptiX::ProgramsHitOps*const programs_hitops;
-
 				OptiX::ShaderBindingTable* sbt;
 
 				OptiX::Pipeline* pipeline;
@@ -43,9 +39,9 @@ class Renderer final {
 			public:
 				Integrator(
 					Renderer* parent, Scene::SceneGraph* scenegraph,
-					OptiX::ProgramRaygen*  program_raygen,
-					OptiX::ProgramMiss*    program_miss,
-					OptiX::ProgramsHitOps* programs_hitops
+					            OptiX::ProgramRaygen*          program_raygen,
+					std::vector<OptiX::ProgramMiss*   > const& programs_miss,
+					std::vector<OptiX::ProgramsHitOps*> const& programsets_hitops
 				);
 				~Integrator();
 

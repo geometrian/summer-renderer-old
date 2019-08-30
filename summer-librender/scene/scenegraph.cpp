@@ -38,9 +38,11 @@ void Node::_register_for_build(
 		child->_register_for_build(builder,transform_wld_to_inside_3x4);
 	}
 	for (Object const* object : objects) {
-		for (Object::Mesh const* mesh : object->meshes) {
-			builder->add_instance(mesh->accel->handle,transform_wld_to_inside);
-		}
+		builder->add_instance(
+			object->num_meshes_preceding * SUMMER_MAX_RAYTYPES,
+			object->accel->handle,
+			transform_wld_to_inside
+		);
 	}
 }
 
@@ -108,7 +110,10 @@ void SceneGraph::upload(OptiX::Context const* context_optix) {
 	}
 
 	//Build and upload objects' acceleration structures
-	for (Object* object : objects) object->upload(context_optix);
+	size_t num_meshes_preceding = 0;
+	for (Object* object : objects) {
+		num_meshes_preceding = object->upload(context_optix,num_meshes_preceding);
+	}
 
 	//Build and upload the instance acceleration structure for each scene
 	for (Scene* scene : scenes) scene->upload(context_optix);

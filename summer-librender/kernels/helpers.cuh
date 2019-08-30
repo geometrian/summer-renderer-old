@@ -19,27 +19,28 @@ inline static __device__ Tout bit_cast(Tin const& value) {
 }
 
 
-#if 0
-// for this simple example, we have a single ray type
-enum { SURFACE_RAY_TYPE=0, RAY_TYPE_COUNT };
-  
-static __forceinline__ __device__ void *unpackPointer( uint32_t i0, uint32_t i1 ) {
-	const uint64_t uptr = static_cast<uint64_t>( i0 ) << 32 | i1;
-	void*           ptr = reinterpret_cast<void*>( uptr ); 
-	return ptr;
-}
-static __forceinline__ __device__ void  packPointer( void* ptr, uint32_t& i0, uint32_t& i1 ) {
-	const uint64_t uptr = reinterpret_cast<uint64_t>( ptr );
-	i0 = uptr >> 32;
-	i1 = uptr & 0x00000000ffffffff;
-}
+template<typename T> class PackedPointer final {
+	static_assert(sizeof(T*)==2*sizeof(uint32_t),"Implementation error!");
+	private:
+		uint32_t _u[2];
 
-template<typename T> static __forceinline__ __device__ T *getPRD() { 
-	const uint32_t u0 = optixGetPayload_0();
-	const uint32_t u1 = optixGetPayload_1();
-	return reinterpret_cast<T*>( unpackPointer( u0, u1 ) );
-}
-#endif
+	public:
+		PackedPointer() = default;
+		__device__ PackedPointer(uint32_t u0, uint32_t u1) { _u[0]=u0; _u[1]=u1; }
+		__device__ PackedPointer(T* ptr) { memcpy(_u,&ptr,sizeof(T*)); }
+		~PackedPointer() = default;
+
+		__device__ static PackedPointer from_payloads01() {
+			return PackedPointer(optixGetPayload_0(),optixGetPayload_1());
+		}
+
+		__device__ operator T*() const {
+			T* result; memcpy(&result,_u,sizeof(T*)); return result;
+		}
+
+		__device__ uint32_t operator[](size_t index) { return _u[index]; }
+};
+
 
 inline static __device__ uint32_t pack_sRGB_A(Vec4f const& srgb_a) {
 	Vec4u discrete = Vec4u(glm::clamp( Vec4i(srgb_a * 255.0f), Vec4i(0),Vec4i(255) ));
@@ -119,6 +120,14 @@ static __device__ Scene::ShadePoint get_shade_info(DataSBT_HitOps const& data) {
 		bary = Vec3f( 1.0f-bary_st.x-bary_st.y, bary_st.x, bary_st.y);
 	}
 
+	Vec3f verts[3], pos;
+	{
+		verts[0] = from_float3(optixTransformPointFromObjectToWorldSpace(to_float3( data.verts[indices.x] )));
+		verts[1] = from_float3(optixTransformPointFromObjectToWorldSpace(to_float3( data.verts[indices.y] )));
+		verts[2] = from_float3(optixTransformPointFromObjectToWorldSpace(to_float3( data.verts[indices.z] )));
+		pos = bary.x*verts[0] + bary.y*verts[1] + bary.z*verts[2];
+	}
+
 	bool has_texc0s = true;
 	Vec2f texc0s[3];
 	Vec2f texc0;
@@ -152,13 +161,6 @@ static __device__ Scene::ShadePoint get_shade_info(DataSBT_HitOps const& data) {
 	{
 		Scene::MaterialBase::InterfaceGPU const* materials = reinterpret_cast<Scene::MaterialBase::InterfaceGPU const*>(interface.materials);
 		material = materials + data.material_index;
-	}
-
-	Vec3f verts[3];
-	{
-		verts[0] = from_float3(optixTransformPointFromObjectToWorldSpace(to_float3( data.verts[indices.x] )));
-		verts[1] = from_float3(optixTransformPointFromObjectToWorldSpace(to_float3( data.verts[indices.y] )));
-		verts[2] = from_float3(optixTransformPointFromObjectToWorldSpace(to_float3( data.verts[indices.z] )));
 	}
 
 	Vec3f Ngeom;
@@ -195,7 +197,7 @@ static __device__ Scene::ShadePoint get_shade_info(DataSBT_HitOps const& data) {
 		Nshad = glm::normalize(Nshad);
 	}
 
-	return { indices, bary, texc0, material, Ngeom,Nshad };
+	return { indices, bary, pos, texc0, material, Ngeom,Nshad };
 }
 
 

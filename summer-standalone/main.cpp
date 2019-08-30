@@ -5,7 +5,7 @@ static Vec2zu const res = Vec2zu(1024,768);
 //static Vec2zu const res = Vec2zu(2560,1440);
 
 
-#define SCENE_NUMBER 0
+#define SCENE_NUMBER 3
 #if   SCENE_NUMBER == -1
 	#define SCENE_NAME "AntiqueCamera"
 	static float camera_angles[2] = { 30.0f, 20.0f };
@@ -31,9 +31,9 @@ static Vec2zu const res = Vec2zu(1024,768);
 	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
 #elif SCENE_NUMBER == 3
 	#define SCENE_NAME "Buggy"
-	static float camera_angles[2] = { 60.0f, 22.5f };
-	static float camera_radius = 5.0f;
-	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
+	static float camera_angles[2] = { 140.0f, 22.5f };
+	static float camera_radius = 150.0f;
+	static Vec3f camera_center( 20.0f, 20.0f, 20.0f );
 #elif SCENE_NUMBER == 4
 	#define SCENE_NAME "DamagedHelmet"
 	static float camera_angles[2] = { 60.0f, 22.5f };
@@ -62,8 +62,8 @@ static Vec2zu const res = Vec2zu(1024,768);
 #elif SCENE_NUMBER == 9
 	#define SCENE_NAME "Sponza"
 	static float camera_angles[2] = { 60.0f, 22.5f };
-	static float camera_radius = 5.0f;
-	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
+	static float camera_radius = 1.0f;
+	static Vec3f camera_center( 0.0f, 4.0f, 0.0f );
 #endif
 
 static char const* integrator_name = "pathtrace";

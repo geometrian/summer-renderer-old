@@ -14,43 +14,46 @@ namespace Summer {
 
 Renderer::Integrator::Integrator(
 	Renderer* parent, Scene::SceneGraph* scenegraph,
-	OptiX::ProgramRaygen*  program_raygen,
-	OptiX::ProgramMiss*    program_miss,
-	OptiX::ProgramsHitOps* programs_hitops
-) :
-	program_raygen (program_raygen ),
-	program_miss   (program_miss   ),
-	programs_hitops(programs_hitops)
-{
+	            OptiX::ProgramRaygen*          program_raygen,
+	std::vector<OptiX::ProgramMiss*   > const& programs_miss,
+	std::vector<OptiX::ProgramsHitOps*> const& programsets_hitops
+) {
 	OptiX::ShaderBindingTable::Builder<DataSBT_Raygen,DataSBT_Miss,DataSBT_HitOps> sbt_builder;
 	{
 		sbt_builder.raygen = std::make_pair( program_raygen, new DataSBT_Raygen );
 
-		sbt_builder.miss.emplace_back(std::make_pair( program_miss, new DataSBT_Miss ));
-		//sbt_builder.miss.emplace_back(std::make_pair( _optix.program_miss, new DataSBT_Miss  ));
+		for (OptiX::ProgramMiss const* program_miss : programs_miss) {
+			sbt_builder.miss.emplace_back(std::make_pair( program_miss, new DataSBT_Miss ));
+		}
 
-		#if 0
-			for (Scene::Object const* object : scenegraph->objects) {
-				for (Scene::Object::Mesh const* mesh : object->meshes) {
+		for (Scene::Object const* object : scenegraph->objects) {
+			for (Scene::Object::Mesh const* mesh : object->meshes) {
+				assert_term(programsets_hitops.size()<=SUMMER_MAX_RAYTYPES,"Too many ray types!");
+				for (OptiX::ProgramsHitOps const* programs_hitops : programsets_hitops) {
 					sbt_builder.hitsops.emplace_back(std::make_pair( programs_hitops, new DataSBT_HitOps(mesh) ));
 				}
+				for (size_t i=programsets_hitops.size();i<SUMMER_MAX_RAYTYPES;++i) {
+					sbt_builder.hitsops.emplace_back(std::make_pair( nullptr, nullptr ));
+				}
 			}
-		#else
-			Scene::Scene const* scene = scenegraph->scenes[0];
-			for (Scene::Node const* root_node : scene->root_nodes) {
-				std::function<void(Scene::Node const*)> add_node = [&](Scene::Node const* node) -> void {
-					for (Scene::Node const* child : node->children) {
-						add_node(child);
-					}
-					for (Scene::Object const* object : node->objects) {
-						for (Scene::Object::Mesh const* mesh : object->meshes) {
+		}
+
+		/*Scene::Scene const* scene = scenegraph->scenes[0];
+		for (Scene::Node const* root_node : scene->root_nodes) {
+			std::function<void(Scene::Node const*)> add_node = [&](Scene::Node const* node) -> void {
+				for (Scene::Node const* child : node->children) {
+					add_node(child);
+				}
+				for (Scene::Object const* object : node->objects) {
+					for (Scene::Object::Mesh const* mesh : object->meshes) {
+						for (OptiX::ProgramsHitOps const* programs_hitops : programsets_hitops) {
 							sbt_builder.hitsops.emplace_back(std::make_pair( programs_hitops, new DataSBT_HitOps(mesh) ));
 						}
 					}
-				};
-				add_node(root_node);
-			}
-		#endif
+				}
+			};
+			add_node(root_node);
+		}*/
 	}
 	sbt = new OptiX::ShaderBindingTable(sbt_builder);
 	                                             delete sbt_builder.raygen.second;
@@ -94,38 +97,45 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 		_optix.module = new OptiX::CompiledModule(_optix.context,_optix.pipeline_opts,reinterpret_cast<char const*>(ptx_embed___summer_librender___kernels___compile_all_kernels_cu));
 
 		//Ray generation
-		_optix.program_sets["raygen-forward"  ] = new OptiX::ProgramRaygen ( _optix.context, _optix.module,"__raygen__forward" );
+		_optix.program_sets["raygen-forward"         ] = new OptiX::ProgramRaygen ( _optix.context, _optix.module,"__raygen__forward"       );
 
 		//Miss
-		_optix.program_sets["miss-color"      ] = new OptiX::ProgramMiss   ( _optix.context, _optix.module,"__miss__color"     );
+		_optix.program_sets["miss-color"             ] = new OptiX::ProgramMiss   ( _optix.context, _optix.module,"__miss__color"           );
+		_optix.program_sets["miss-pathtrace"         ] = new OptiX::ProgramMiss   ( _optix.context, _optix.module,"__miss__pathtrace"       );
+		_optix.program_sets["miss-pathtrace-shadow"  ] = new OptiX::ProgramMiss   ( _optix.context, _optix.module,"__miss__pathtrace_shadow");
 
 		//Hit operations
-		_optix.program_sets["hitops-albedo"   ] = new OptiX::ProgramsHitOps(
+		_optix.program_sets["hitops-albedo"          ] = new OptiX::ProgramsHitOps(
 			_optix.context,
 			_optix.module, "__closesthit__albedo",
 			nullptr,       nullptr,
 			nullptr,       nullptr
 		);
-		_optix.program_sets["hitops-normals"  ] = new OptiX::ProgramsHitOps(
+		_optix.program_sets["hitops-normals"         ] = new OptiX::ProgramsHitOps(
 			_optix.context,
 			_optix.module, "__closesthit__normals",
 			nullptr,       nullptr,
 			nullptr,       nullptr
 		);
-		_optix.program_sets["hitops-pathtrace"] = new OptiX::ProgramsHitOps(
+		_optix.program_sets["hitops-pathtrace"       ] = new OptiX::ProgramsHitOps(
 			_optix.context,
 			_optix.module, "__closesthit__pathtrace",
-			nullptr,       nullptr,
-			//_optix.module, "__anyhit__pathtrace",
+			nullptr,       nullptr, //_optix.module, "__anyhit__pathtrace",
 			nullptr,       nullptr
 		);
-		_optix.program_sets["hitops-texcs"    ] = new OptiX::ProgramsHitOps(
+		_optix.program_sets["hitops-pathtrace-shadow"] = new OptiX::ProgramsHitOps(
+			_optix.context,
+			nullptr,       nullptr,
+			_optix.module, "__anyhit__pathtrace_shadow",
+			nullptr,       nullptr
+		);
+		_optix.program_sets["hitops-texcs"           ] = new OptiX::ProgramsHitOps(
 			_optix.context,
 			_optix.module, "__closesthit__texcs",
 			nullptr,       nullptr,
 			nullptr,       nullptr
 		);
-		_optix.program_sets["hitops-tri-bary" ] = new OptiX::ProgramsHitOps(
+		_optix.program_sets["hitops-tri-bary"        ] = new OptiX::ProgramsHitOps(
 			_optix.context,
 			_optix.module, "__closesthit__tri_bary",
 			nullptr,       nullptr,
@@ -137,33 +147,39 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 	{
 		integrators["albedo"   ] = new Integrator(
 			this, scenegraph,
-			static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )),
-			static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-albedo"   ))
+			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
+			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )) },
+			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-albedo"   )) }
 		);
 		integrators["normals"  ] = new Integrator(
 			this, scenegraph,
-			static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )),
-			static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-normals"  ))
+			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
+			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )) },
+			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-normals"  )) }
 		);
 		integrators["pathtrace"] = new Integrator(
 			this, scenegraph,
 			static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )),
-			static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-pathtrace"))
+			{
+				static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-pathtrace"         )),
+				static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-pathtrace-shadow"  ))
+			},
+			{
+				static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-pathtrace"       )),
+				static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-pathtrace-shadow"))
+			}
 		);
 		integrators["texcs"    ] = new Integrator(
 			this, scenegraph,
-			static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )),
-			static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-texcs"    ))
+			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
+			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )) },
+			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-texcs"    )) }
 		);
 		integrators["tri-bary" ] = new Integrator(
 			this, scenegraph,
-			static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )),
-			static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-tri-bary" ))
+			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
+			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )) },
+			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-tri-bary" )) }
 		);
 	}
 }

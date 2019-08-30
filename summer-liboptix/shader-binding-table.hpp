@@ -60,11 +60,16 @@ class ShaderBindingTable final {
 		{
 			uint8_t* ptr;
 
+			//Fill list of program sets used in the SBT for later use when creating pipelines.
 			{
 				std::set<OptixProgramGroup> tmp;
 				                                         tmp.insert(builder.raygen.first->program_set);
 				for (auto const& iter : builder.miss   ) tmp.insert(iter.          first->program_set);
-				for (auto const& iter : builder.hitsops) tmp.insert(iter.          first->program_set);
+				for (auto const& iter : builder.hitsops) {
+					//	It can be convenient to have empty records in the SBT.  These don't have
+					//		valid program sets, so skip those.
+					if (iter.first!=nullptr) tmp.insert(iter.first->program_set);
+				}
 
 				std::copy( tmp.cbegin(),tmp.cend(), std::back_inserter(_program_sets) );
 			}
@@ -86,7 +91,11 @@ class ShaderBindingTable final {
 			}
 			for (auto const& iter : builder.hitsops) {
 				_Entry<DataHitOps>* rec_ptr = reinterpret_cast<_Entry<DataHitOps>*>(ptr);
-				_prepare_copy( iter.first, iter.second,rec_ptr );
+				if (iter.first!=nullptr) {
+					_prepare_copy( iter.first, iter.second,rec_ptr );
+				} else {
+					memset( rec_ptr, 0x00, sizeof(_Entry<DataHitOps>) );
+				}
 
 				ptr += sizeof(_Entry<DataHitOps>);
 			}

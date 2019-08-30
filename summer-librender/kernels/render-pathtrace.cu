@@ -18,6 +18,16 @@ extern "C" __global__ void __miss__pathtrace() {
 	interface.camera.framebuffer.rgba.ptr[index] = pack_sRGB_A(Vec4f( Vec3f(0.5f), 1.0f ));
 }
 
+extern "C" __global__ void __miss__pathtrace_shadow() {
+	float* visibility = PackedPointer<float>::from_payloads01();
+	*visibility = 1.0f;
+}
+
+
+extern "C" __global__ void __anyhit__pathtrace_shadow() {
+	float* visibility = PackedPointer<float>::from_payloads01();
+	*visibility = 0.1f;
+}
 
 extern "C" __global__ void __closesthit__pathtrace() {
 	DataSBT_HitOps const& data = *reinterpret_cast<DataSBT_HitOps*>(optixGetSbtDataPointer());
@@ -53,14 +63,42 @@ extern "C" __global__ void __closesthit__pathtrace() {
 		write_rgba(albedo);
 	#endif
 	#if 1
-		Vec3f L = glm::normalize(Vec3f(1,2,1));
+		Vec3f light_pos = Vec3f(1000,2000,1000);
+
+		Vec3f L = glm::normalize(light_pos-shade_point.pos);
+
+		float visibility;
+		{
+			PackedPointer<float> ptr = &visibility;
+
+			uint32_t u0=ptr[0], u1=ptr[1];
+			optixTrace(
+				interface.traversable,
+
+				to_float3(shade_point.pos+0.001f*L), to_float3(L),
+
+				0.0f, std::numeric_limits<float>::infinity(),
+				0.0f,
+
+				OptixVisibilityMask(0b11111111),
+
+				OptixRayFlags::OPTIX_RAY_FLAG_NONE,
+				1u, 2u,
+				1u,
+
+				u0, u1//ptr[0], ptr[1]
+			);
+		}
+
 		float3 Vtmp = optixGetWorldRayDirection();
 		Vec3f V = -Vec3f(Vtmp.x,Vtmp.y,Vtmp.z);
 
 		Scene::ShadePointEvaluate hit = { shade_point, L,V };
 		Vec4f bsdf = shade_point.material->evaluate(&hit);
-		bsdf.a = 1.0f;
 
+		bsdf *= visibility;
+
+		bsdf.a = 1.0f;
 		#if 1
 			Vec3f Li = Vec3f(20.0f);
 
