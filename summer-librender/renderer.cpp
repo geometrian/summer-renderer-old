@@ -86,6 +86,19 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 	//OptiX setup
 	{
 		_optix.context  = new OptiX::Context(_cuda.context);
+
+		#define SUMMER_QUERY(PROPERTY,FIELD)\
+			assert_optix(optixDeviceContextGetProperty( _optix.context->context, OptixDeviceProperty::PROPERTY, &_optix.properties.FIELD,sizeof(uint32_t) ))
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_LIMIT_MAX_TRACE_DEPTH,                  max_trace_depth        );
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_LIMIT_MAX_TRAVERSABLE_GRAPH_DEPTH,      max_graph_depth        );
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_LIMIT_MAX_PRIMITIVES_PER_GAS,           max_prim_in_accelstruct);
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_LIMIT_MAX_INSTANCES_PER_IAS,            max_inst_in_accelstruct);
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_RTCORE_VERSION,                         rtcore_version         );
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_LIMIT_MAX_INSTANCE_ID,                  max_instanceid         );
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_LIMIT_NUM_BITS_INSTANCE_VISIBILITY_MASK,numbits_vis_msk        );
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_LIMIT_MAX_SBT_RECORDS_PER_GAS,          max_sbt_in_accelstruct ); //TODO: documentation confusing/wrong?
+		SUMMER_QUERY(OPTIX_DEVICE_PROPERTY_LIMIT_MAX_SBT_OFFSET,                   max_sbt_offset         );
+		#undef SUMMER_QUERY
 	}
 
 	//Upload scenegraph to GPU

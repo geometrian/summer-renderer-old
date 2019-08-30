@@ -22,6 +22,18 @@ class Renderer final {
 		struct {
 			OptiX::Context* context;
 
+			struct {
+				uint32_t max_trace_depth;
+				uint32_t max_graph_depth;
+				uint32_t max_prim_in_accelstruct;
+				uint32_t max_inst_in_accelstruct;
+				uint32_t rtcore_version; //Note: `0u` means none
+				uint32_t max_instanceid;
+				uint32_t numbits_vis_msk;
+				uint32_t max_sbt_in_accelstruct;
+				uint32_t max_sbt_offset;
+			} properties;
+
 			OptiX::Pipeline::Options pipeline_opts;
 
 			std::map<std::string,OptiX::ProgramSetBase*> program_sets;
