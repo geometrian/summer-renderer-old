@@ -67,6 +67,7 @@ class Scene final {
 
 		std::vector<Camera*> cameras;
 
+		//Higher-level acceleration structure built over objects' meshes
 		OptiX::AccelerationStructure* accel;
 
 		class InterfaceGPU final {

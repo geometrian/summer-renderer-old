@@ -6,8 +6,8 @@ add_executable(summer-standalone
 set_target_properties(summer-standalone PROPERTIES LINKER_LANGUAGE CXX)
 
 add_dependencies(summer-standalone
-	summer-librender-cpu
-	summer-librender-gpu
+	summer-librender
+	summer-librender-gpubuild
 	summer-libcuda
 	summer-liboptix
 	summer-libutil
@@ -15,8 +15,8 @@ add_dependencies(summer-standalone
 )
 
 target_link_libraries(summer-standalone
-	summer-librender-cpu
-	summer-librender-gpu
+	summer-librender
+	summer-librender-gpubuild
 	summer-libcuda
 	summer-liboptix
 	summer-libutil

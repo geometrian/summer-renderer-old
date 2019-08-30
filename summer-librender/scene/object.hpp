@@ -87,13 +87,16 @@ class Object final {
 				MaterialBase const* material;
 				size_t material_index;
 
+				//Lower-level acceleration structure built over primitives
+				OptiX::AccelerationStructure* accel;
+
 			private:
 				CUdeviceptr mutable _ptrs_vbuffers[1];
 				CUdeviceptr mutable _ptr_ibuffer  [1];
 
 			public:
 				explicit Mesh(TYPE_PRIMS type_prims);
-				~Mesh() = default;
+				~Mesh();
 
 				void set_ref_verts(DataBlock::Accessor<Vec3f> const* accessor);
 				void set_ref_norms(DataBlock::Accessor<Vec3f> const* accessor);
@@ -120,12 +123,9 @@ class Object final {
 				void set_ref_indices(DataBlock::Accessor<uint16_t> const* accessor);
 				void set_ref_indices(DataBlock::Accessor<uint32_t> const* accessor);
 
-			private:
-				void _register_for_build(OptiX::AccelerationStructure::BuilderTriangles* builder) const;
+				void upload(OptiX::Context const* context_optix);
 		};
 		std::vector<Mesh*> meshes;
-
-		OptiX::AccelerationStructure* accel;
 
 	public:
 		explicit Object(std::string const& name);

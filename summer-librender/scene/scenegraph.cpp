@@ -38,7 +38,9 @@ void Node::_register_for_build(
 		child->_register_for_build(builder,transform_wld_to_inside_3x4);
 	}
 	for (Object const* object : objects) {
-		builder->add_instance(object->accel->handle,transform_wld_to_inside);
+		for (Object::Mesh const* mesh : object->meshes) {
+			builder->add_instance(mesh->accel->handle,transform_wld_to_inside);
+		}
 	}
 }
 

@@ -5,7 +5,7 @@ namespace Summer { namespace Scene {
 
 
 Object::Mesh::Mesh(TYPE_PRIMS type_prims) :
-	type_prims(type_prims)
+	type_prims(type_prims), accel(nullptr)
 {
 	buffers_descriptor.packed = 0u;
 
@@ -19,6 +19,9 @@ Object::Mesh::Mesh(TYPE_PRIMS type_prims) :
 	colors0.u8x3 = nullptr;
 
 	indices.u16 = nullptr;
+}
+Object::Mesh::~Mesh() {
+	delete accel;
 }
 
 void Object::Mesh::set_ref_verts(DataBlock::Accessor<Vec3f> const* accessor) {
@@ -109,59 +112,57 @@ void Object::Mesh::set_ref_indices(DataBlock::Accessor<uint32_t> const* accessor
 	buffers_descriptor.type_indices = accessor!=nullptr?0b10u:0b00u;
 }
 
-void Object::Mesh::_register_for_build(OptiX::AccelerationStructure::BuilderTriangles* builder) const {
+void Object::Mesh::upload(OptiX::Context const* context_optix) {
 	assert_term(buffers_descriptor.has_verts!=0u,"Must have at-least vertices in object mesh!");
 
 	_ptrs_vbuffers[0] = verts->get_ptr_gpu().ptr_integral;
 	assert_term(_ptrs_vbuffers[0]!=reinterpret_cast<CUdeviceptr>(nullptr),"Implementation error!");
+
+	//TODO: Simplify.
+	OptiX::AccelerationStructure::BuilderTriangles builder;
 	switch (buffers_descriptor.type_indices) {
 		case 0b00:
-			builder->add_mesh_triangles_basic(
+			builder.add_mesh_triangles_basic(
 				{ _ptrs_vbuffers, verts->view->stride,       verts->num_elements       }
 			);
 			break;
 		case 0b01:
 			_ptr_ibuffer[0] = indices.u16->get_ptr_gpu().ptr_integral;
-			builder->add_mesh_triangles_indexed_u16(
+			builder.add_mesh_triangles_indexed_u16(
 				{ _ptrs_vbuffers, verts->view->stride,       verts->num_elements       },
 				{ _ptr_ibuffer,   indices.u16->view->stride, indices.u16->num_elements }
 			);
 			break;
 		case 0b10:
 			_ptr_ibuffer[0] = indices.u32->get_ptr_gpu().ptr_integral;
-			builder->add_mesh_triangles_indexed_u32(
+			builder.add_mesh_triangles_indexed_u32(
 				{ _ptrs_vbuffers, verts->view->stride,       verts->num_elements       },
 				{ _ptr_ibuffer,   indices.u32->view->stride, indices.u32->num_elements }
 			);
 			break;
 		nodefault;
 	}
+	builder.finish();
+
+	accel = new OptiX::AccelerationStructure(context_optix,builder);
 }
 
 
 Object::Object(std::string const& name) :
-	name(name), accel(nullptr)
+	name(name)
 {}
 Object::~Object() {
-	delete accel;
-
 	for (Mesh const* mesh : meshes) delete mesh;
 }
 
 Object::Mesh* Object::add_new_mesh(Mesh::TYPE_PRIMS type_prims) {
-	assert_term(accel=nullptr,"Acceleration structure already built!");
-
 	Mesh* new_mesh = new Mesh(type_prims);
 	meshes.emplace_back(new_mesh);
 	return new_mesh;
 }
 
 void Object::upload(OptiX::Context const* context_optix) {
-	OptiX::AccelerationStructure::BuilderTriangles builder;
-	for (Mesh const* mesh : meshes) mesh->_register_for_build(&builder);
-	builder.finish();
-
-	accel = new OptiX::AccelerationStructure(context_optix,builder);
+	for (Mesh* mesh : meshes) mesh->upload(context_optix);
 }
 
 

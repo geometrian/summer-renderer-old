@@ -29,7 +29,7 @@ Renderer::Integrator::Integrator(
 		sbt_builder.miss.emplace_back(std::make_pair( program_miss, new DataSBT_Miss ));
 		//sbt_builder.miss.emplace_back(std::make_pair( _optix.program_miss, new DataSBT_Miss  ));
 
-		#if 1
+		#if 0
 			for (Scene::Object const* object : scenegraph->objects) {
 				for (Scene::Object::Mesh const* mesh : object->meshes) {
 					sbt_builder.hitsops.emplace_back(std::make_pair( programs_hitops, new DataSBT_HitOps(mesh) ));
@@ -44,8 +44,7 @@ Renderer::Integrator::Integrator(
 					}
 					for (Scene::Object const* object : node->objects) {
 						for (Scene::Object::Mesh const* mesh : object->meshes) {
-							DataSBT_HitOps entry_hitops(mesh);
-							sbt_builder.hitsops.emplace_back(std::make_pair( _optix.programs_hitops, &entry_hitops ));
+							sbt_builder.hitsops.emplace_back(std::make_pair( programs_hitops, new DataSBT_HitOps(mesh) ));
 						}
 					}
 				};
@@ -192,6 +191,8 @@ Renderer::~Renderer() {
 }
 
 void Renderer::render(size_t scene_index, size_t camera_index, float timestamp, std::string const& integrator_name) const {
+	assert_term(scene_index==0,"Not implemented!"); //SBT build above
+
 	Scene::Scene const* scene = scenegraph->scenes[scene_index];
 	Scene::Framebuffer& framebuffer = scene->cameras[camera_index]->framebuffer;
 
