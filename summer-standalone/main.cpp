@@ -66,7 +66,9 @@ static Vec2zu const res = Vec2zu(1024,768);
 	static Vec3f camera_center( 0.0f, 4.0f, 0.0f );
 #endif
 
-static char const* integrator_name = "pathtrace";
+static Summer::RenderSettings* render_settings;
+
+static bool render_dirty = true;
 
 
 #ifdef BUILD_DEBUG
@@ -87,19 +89,22 @@ inline static void _callback_key(GLFWwindow* window, int key,int /*scancode*/, i
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
 				break;
 			case GLFW_KEY_A:
-				if (alt_pressed) integrator_name="albedo";
+				if (alt_pressed) render_settings->layer_primary_output=Summer::RenderSettings::LAYERS::SCENE_ALBEDO;
 				break;
 			case GLFW_KEY_B:
-				if (alt_pressed) integrator_name="tri-bary";
+				if (alt_pressed) render_settings->layer_primary_output=Summer::RenderSettings::LAYERS::SCENE_TRIANGLE_BARYCENTRIC_COORDINATES;
+				break;
+			case GLFW_KEY_C:
+				if (alt_pressed) render_settings->layer_primary_output=Summer::RenderSettings::LAYERS::SAMPLING_COUNT;
 				break;
 			case GLFW_KEY_N:
-				if (alt_pressed) integrator_name="normals";
+				if (alt_pressed) render_settings->layer_primary_output=Summer::RenderSettings::LAYERS::SCENE_NORMALS_SHADING;
 				break;
 			case GLFW_KEY_P:
-				if (alt_pressed) integrator_name="pathtrace";
+				if (alt_pressed) render_settings->layer_primary_output=Summer::RenderSettings::LAYERS::LIGHTING_RAW;
 				break;
 			case GLFW_KEY_T:
-				if (alt_pressed) integrator_name="texcs";
+				if (alt_pressed) render_settings->layer_primary_output=Summer::RenderSettings::LAYERS::SCENE_TEXTURE_COORDINATES;
 				break;
 			default:
 				break;
@@ -112,6 +117,7 @@ static void _callback_mpos(GLFWwindow* window, double xpos,double ypos) {
 	if (glfwGetMouseButton(window,GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS) {
 		camera_angles[0] += static_cast<float>( xpos - _last_mpos[0] );
 		camera_angles[1] += static_cast<float>( ypos - _last_mpos[1] );
+		render_dirty = true;
 	}
 	_last_mpos[0] = xpos;
 	_last_mpos[1] = ypos;
@@ -119,6 +125,7 @@ static void _callback_mpos(GLFWwindow* window, double xpos,double ypos) {
 static void _callback_scroll(GLFWwindow* window, double xoffset,double yoffset) {
 	if (yoffset>0.0) camera_radius*=0.9f;
 	else             camera_radius/=0.9f;
+	render_dirty = true;
 }
 
 
@@ -126,6 +133,9 @@ int main(int /*argc*/, char* /*argv*/[]) {
 	#if defined _WIN32 && defined BUILD_DEBUG
 		_CrtSetDbgFlag(0xFFFFFFFF);
 	#endif
+
+	Summer::RenderSettings backing;
+	render_settings = &backing;
 
 	{
 		GLFWwindow* window;
@@ -175,14 +185,25 @@ int main(int /*argc*/, char* /*argv*/[]) {
 			Summer::Scene::load_new_gltf("../../../../../prebuilt-data/objects/glTF-Sample-Models/2.0/" SCENE_NAME "/glTF/" SCENE_NAME ".gltf")
 		;
 		scenegraph->cameras.emplace_back(new Summer::Scene::Camera(
-			Summer::Scene::Camera::TYPE::LOOKAT, res
+			Summer::Scene::Camera::TYPE::LOOKAT, res,static_cast<Summer::RenderSettings::LAYERS>(~0u)
 		));
 		scenegraph->scenes[0]->cameras.emplace_back(scenegraph->cameras.back());
 
 		Summer::Renderer renderer(scenegraph);
 
+		render_settings->lighting_integrator  = Summer::RenderSettings::LIGHTING_INTEGRATOR::PATH_TRACING;
+		render_settings->layer_primary_output = Summer::RenderSettings::LAYERS::LIGHTING_RAW;
+		render_settings->index_scene = 0;
+		render_settings->index_camera = 0;
+		render_settings->time_range[0] = 0.0f;
+		render_settings->time_range[1] = 1.0f;
+
 		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
+
+			if (render_dirty) {
+				renderer.reset();
+			}
 
 			Summer::Scene::Camera* camera = scenegraph->cameras.back();
 			camera->lookat.position = camera_center + Vec3f(
@@ -193,9 +214,11 @@ int main(int /*argc*/, char* /*argv*/[]) {
 			camera->lookat.center = camera_center;
 			camera->lookat.up = Vec3f(0,1,0);
 
-			renderer.render( 0, 0, 0.0f, integrator_name );
+			renderer.render(*render_settings);
 
-			camera->framebuffer.draw();
+			render_dirty = false;
+
+			camera->framebuffer.process_and_draw(*render_settings);
 
 			glfwSwapBuffers(window);
 		}

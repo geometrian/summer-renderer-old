@@ -121,6 +121,7 @@ add_subdirectory(summer-libbase)
 add_subdirectory(summer-libutil)
 
 add_subdirectory(summer-libcuda)
+add_subdirectory(summer-libopengl)
 add_subdirectory(summer-liboptix)
 
 add_subdirectory(summer-librender)

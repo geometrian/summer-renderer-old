@@ -107,7 +107,10 @@ class ShadePoint final {
 		//	not support larger index types, and those can only make it slower.
 		Vec3u const indices;
 
-		Vec3f const bary;
+		union {
+			Vec2f const bary_2D;
+			Vec3f const bary_3D;
+		};
 
 		Vec3f const pos;
 

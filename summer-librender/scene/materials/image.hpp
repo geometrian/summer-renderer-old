@@ -7,20 +7,20 @@
 namespace Summer { namespace Scene {
 
 
-//#define SUMMER_ENABLE_SRGB_OPENGL
-
-
 class Image2D final {
 	public:
 		enum class FORMAT {
-			sRGB8,
-			sRGB8_A8,
+			SCALAR_F32,
+			VEC2_F32,
+			VEC3_F32,
 
-			DEPTH32F,
-			lRGB32F,
-			lRGBA32F,
+			CIEXYZ_F32,
+			CIEXYZ_A_F32,
 
-			VEC3_32F = lRGB32F
+			lRGB_F32,
+			lRGB_A_F32,
+			sRGB_U8,
+			sRGB_A_U8
 		};
 		FORMAT const format;
 
@@ -41,49 +41,24 @@ class Image2D final {
 
 template<Image2D::FORMAT fmt> class ImageFormatInfo;
 
-template<> class ImageFormatInfo<Image2D::FORMAT::sRGB8   > final { public:
-	#ifdef SUMMER_ENABLE_SRGB_OPENGL
-	static GLenum const gl_fmt_int   = GL_SRGB8;
-	#else
-	static GLenum const gl_fmt_int   = GL_RGB8;
-	#endif
-	static GLenum const gl_fmt_data  = GL_RGB;
-	static GLenum const gl_datatype  = GL_UNSIGNED_BYTE;
-	static size_t const sizeof_texel = 3*sizeof(uint8_t);
-	typedef Vec3ub type;
-};
-template<> class ImageFormatInfo<Image2D::FORMAT::sRGB8_A8> final { public:
-	#ifdef SUMMER_ENABLE_SRGB_OPENGL
-	static GLenum const gl_fmt_int   = GL_SRGB8_ALPHA8;
-	#else
-	static GLenum const gl_fmt_int   = GL_RGBA8;
-	#endif
-	static GLenum const gl_fmt_data  = GL_RGBA;
-	static GLenum const gl_datatype  = GL_UNSIGNED_BYTE;
-	static size_t const sizeof_texel = (3+1)*sizeof(uint8_t);
-	typedef Vec4ub type;
-};
-template<> class ImageFormatInfo<Image2D::FORMAT::DEPTH32F> final { public:
-	static GLenum const gl_fmt_int   = GL_R32F;
-	static GLenum const gl_fmt_data  = GL_RED;
-	static GLenum const gl_datatype  = GL_FLOAT;
-	static size_t const sizeof_texel = sizeof(float);
-	typedef float type;
-};
-template<> class ImageFormatInfo<Image2D::FORMAT::lRGB32F > final { public:
-	static GLenum const gl_fmt_int   = GL_RGB32F;
-	static GLenum const gl_fmt_data  = GL_RGB;
-	static GLenum const gl_datatype  = GL_FLOAT;
-	static size_t const sizeof_texel = 3*sizeof(float);
-	typedef Vec3f type;
-};
-template<> class ImageFormatInfo<Image2D::FORMAT::lRGBA32F> final { public:
-	static GLenum const gl_fmt_int   = GL_RGBA32F;
-	static GLenum const gl_fmt_data  = GL_RGBA;
-	static GLenum const gl_datatype  = GL_FLOAT;
-	static size_t const sizeof_texel = (3+1)*sizeof(float);
-	typedef Vec4f type;
-};
+#define SUMMER_DEF_SPEC(ENUM,FMTINT,FMTDATA,DATATYPE,TYPE)\
+	template<> class ImageFormatInfo<Image2D::FORMAT::ENUM> final { public:\
+		static GLenum const gl_fmt_int   = FMTINT;\
+		static GLenum const gl_fmt_data  = FMTDATA;\
+		static GLenum const gl_datatype  = DATATYPE;\
+		static size_t const sizeof_texel = sizeof(TYPE);\
+		typedef TYPE type;\
+	};
+SUMMER_DEF_SPEC( SCALAR_F32,   GL_R32F,        GL_RED,  GL_FLOAT,         float  )
+SUMMER_DEF_SPEC( VEC2_F32,     GL_RG32F,       GL_RG,   GL_FLOAT,         Vec2f  )
+SUMMER_DEF_SPEC( VEC3_F32,     GL_RGB32F,      GL_RGB,  GL_FLOAT,         Vec3f  )
+SUMMER_DEF_SPEC( CIEXYZ_F32,   GL_RGB32F,      GL_RGB,  GL_FLOAT,         Vec3f  )
+SUMMER_DEF_SPEC( CIEXYZ_A_F32, GL_RGBA32F,     GL_RGBA, GL_FLOAT,         Vec4f  )
+SUMMER_DEF_SPEC( lRGB_F32,     GL_RGB32F,      GL_RGB,  GL_FLOAT,         Vec3f  )
+SUMMER_DEF_SPEC( lRGB_A_F32,   GL_RGBA32F,     GL_RGBA, GL_FLOAT,         Vec4f  )
+SUMMER_DEF_SPEC( sRGB_U8,      GL_SRGB8,       GL_RGB,  GL_UNSIGNED_BYTE, Vec3ub )
+SUMMER_DEF_SPEC( sRGB_A_U8,    GL_SRGB8_ALPHA8,GL_RGBA, GL_UNSIGNED_BYTE, Vec4ub )
+#undef SUMMER_DEF_SPEC
 
 
 }}

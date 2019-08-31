@@ -21,13 +21,15 @@ class WritePixelBufferObject2D final {
 		size_t const size;
 		size_t const sizeof_texel;
 
-		Pointer<void> mapped_ptr;
+		Pointer<uint8_t> mapped_ptr;
 	private:
 		Context const* _map_context_cuda;
 
 	public:
 		WritePixelBufferObject2D(Vec2zu const& res, size_t sizeof_texel);
 		~WritePixelBufferObject2D();
+
+		void set_async(Context const* context_cuda, uint8_t value);
 
 		CUdeviceptr   map(Context const* context_cuda);
 		void        unmap(                           );

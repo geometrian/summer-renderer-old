@@ -13,14 +13,11 @@ this ilk is inevitable.
 */
 
 
-#include "miss-color.cu"
+//#include "generic-forward.cu"
 
-#include "raygen-forward.cu"
-
-#include "render-albedo.cu"
-#include "render-normals.cu"
-#include "render-pathtrace.cu"
-#include "render-texcs.cu"
-#include "render-tri-bary.cu"
+#include "integrate-lightnone.cu"
+#include "integrate-pathtrace.cu"
 
 #include "../scene/materials/material.cu"
+
+#include "../scene/camera.cu"

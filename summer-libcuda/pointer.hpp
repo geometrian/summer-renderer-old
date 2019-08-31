@@ -23,6 +23,14 @@ template<typename T> class Pointer final {
 			ptr_integral = other.ptr_integral;
 		}
 		~Pointer() = default;
+
+		__device_host__ operator T*() const { return ptr; }
+
+		__device_host__ bool operator==(T* other) const { return ptr==other; }
+		__device_host__ bool operator!=(T* other) const { return ptr!=other; }
+
+		__device_host__ T const& operator[](size_t index) const { return ptr[index]; }
+		__device_host__ T&       operator[](size_t index)       { return ptr[index]; }
 };
 
 

@@ -5,10 +5,18 @@
 
 #include "scene/scenegraph.hpp"
 
+#include "render-settings.hpp"
+
 
 namespace Summer {
 
 
+/*
+Encapsulates the renderer.
+
+Rendering is the process of producing image output from the scene.  In-practice, many images are
+output.
+*/
 class Renderer final {
 	public:
 		Scene::SceneGraph*const scenegraph;
@@ -59,13 +67,15 @@ class Renderer final {
 
 				void render(Scene::Scene::InterfaceGPU const& interface_gpu) const;
 		};
-		std::map<std::string,Integrator*> integrators;
+		std::map<RenderSettings::LIGHTING_INTEGRATOR,Integrator*> integrators;
 
 	public:
 		explicit Renderer(Scene::SceneGraph* scenegraph);
 		~Renderer();
 
-		void render(size_t scene_index, size_t camera_index, float timestamp, std::string const& integrator_name) const;
+		void reset();
+
+		void render(RenderSettings const& render_settings) const;
 		//void render_start() {}
 		//void render_stop () {}
 		//void render_wait () {}

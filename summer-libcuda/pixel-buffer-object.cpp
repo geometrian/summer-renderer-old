@@ -12,9 +12,9 @@ WritePixelBufferObject2D::WritePixelBufferObject2D(Vec2zu const& res, size_t siz
 	sizeof_texel(sizeof_texel)
 {
 	glGenBuffers(1, &gl_handle);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, gl_handle);
-	glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, size,nullptr, GL_STREAM_COPY);
-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, gl_handle);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, size,nullptr, GL_STREAM_COPY);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
 	assert_cuda(cudaGraphicsGLRegisterBuffer(
 		&cuda_handle, gl_handle, cudaGraphicsRegisterFlags::cudaGraphicsRegisterFlagsWriteDiscard
@@ -26,6 +26,12 @@ WritePixelBufferObject2D::~WritePixelBufferObject2D() {
 	cudaGraphicsUnregisterResource(cuda_handle);
 
 	glDeleteBuffers(1,&gl_handle);
+}
+
+void WritePixelBufferObject2D::set_async(Context const* context_cuda, uint8_t value) {
+	  map(context_cuda);
+	cudaMemsetAsync( mapped_ptr.ptr, static_cast<int>(value), size, context_cuda->stream );
+	unmap(            );
 }
 
 CUdeviceptr WritePixelBufferObject2D::  map(Context const* context_cuda) {

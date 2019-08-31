@@ -229,8 +229,8 @@ SceneGraph* load_new_gltf(std::string const& path) {
 	for (tinygltf::Image const& iter : asset.images) {
 		Image2D::FORMAT format;
 		switch (iter.component) {
-			case 3: format=Image2D::FORMAT::sRGB8;    break;
-			case 4: format=Image2D::FORMAT::sRGB8_A8; break;
+			case 3: format=Image2D::FORMAT::sRGB_U8;   break;
+			case 4: format=Image2D::FORMAT::sRGB_A_U8; break;
 			nodefault;
 		}
 		assert_term(iter.bits==8,"Not implemented!");

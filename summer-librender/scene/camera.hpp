@@ -31,12 +31,14 @@ class Camera final {
 				union { LookAt lookat; };
 
 				Framebuffer::InterfaceGPU framebuffer;
+
+				__device__ Ray get_ray(Vec2u const& pixel) const;
 		};
 
 	public:
 		Camera() = default;
-		Camera(TYPE type, Vec2zu const& res) :
-			type(type), framebuffer(res)
+		Camera(TYPE type, Vec2zu const& res,RenderSettings::LAYERS layers) :
+			type(type), framebuffer(res,layers)
 		{}
 		~Camera() = default;
 

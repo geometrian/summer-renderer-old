@@ -37,23 +37,6 @@ Renderer::Integrator::Integrator(
 				}
 			}
 		}
-
-		/*Scene::Scene const* scene = scenegraph->scenes[0];
-		for (Scene::Node const* root_node : scene->root_nodes) {
-			std::function<void(Scene::Node const*)> add_node = [&](Scene::Node const* node) -> void {
-				for (Scene::Node const* child : node->children) {
-					add_node(child);
-				}
-				for (Scene::Object const* object : node->objects) {
-					for (Scene::Object::Mesh const* mesh : object->meshes) {
-						for (OptiX::ProgramsHitOps const* programs_hitops : programsets_hitops) {
-							sbt_builder.hitsops.emplace_back(std::make_pair( programs_hitops, new DataSBT_HitOps(mesh) ));
-						}
-					}
-				}
-			};
-			add_node(root_node);
-		}*/
 	}
 	sbt = new OptiX::ShaderBindingTable(sbt_builder);
 	                                             delete sbt_builder.raygen.second;
@@ -110,90 +93,68 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 		_optix.module = new OptiX::CompiledModule(_optix.context,_optix.pipeline_opts,reinterpret_cast<char const*>(ptx_embed___summer_librender___kernels___compile_all_kernels_cu));
 
 		//Ray generation
-		_optix.program_sets["raygen-forward"         ] = new OptiX::ProgramRaygen ( _optix.context, _optix.module,"__raygen__forward"       );
+		_optix.program_sets["raygen-lightnone"  ] = new OptiX::ProgramRaygen( _optix.context, _optix.module,"__raygen__lightnone"   );
+		_optix.program_sets["raygen-pathtracing"] = new OptiX::ProgramRaygen( _optix.context, _optix.module,"__raygen__pathtracing" );
 
 		//Miss
-		_optix.program_sets["miss-color"             ] = new OptiX::ProgramMiss   ( _optix.context, _optix.module,"__miss__color"           );
-		_optix.program_sets["miss-pathtrace"         ] = new OptiX::ProgramMiss   ( _optix.context, _optix.module,"__miss__pathtrace"       );
-		_optix.program_sets["miss-pathtrace-shadow"  ] = new OptiX::ProgramMiss   ( _optix.context, _optix.module,"__miss__pathtrace_shadow");
+		_optix.program_sets["miss-lightnone"         ] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__lightnone"          );
+		_optix.program_sets["miss-pathtracing-normal"] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__pathtracing_normal" );
+		_optix.program_sets["miss-pathtracing-shadow"] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__pathtracing_shadow" );
 
 		//Hit operations
-		_optix.program_sets["hitops-albedo"          ] = new OptiX::ProgramsHitOps(
-			_optix.context,
-			_optix.module, "__closesthit__albedo",
-			nullptr,       nullptr,
+		_optix.program_sets["hitops-lightnone"         ] = new OptiX::ProgramsHitOps(_optix.context,
+			_optix.module, "__closesthit__lightnone",
+			_optix.module, "__anyhit__lightnone",
 			nullptr,       nullptr
 		);
-		_optix.program_sets["hitops-normals"         ] = new OptiX::ProgramsHitOps(
-			_optix.context,
-			_optix.module, "__closesthit__normals",
-			nullptr,       nullptr,
+		_optix.program_sets["hitops-pathtracing-normal"] = new OptiX::ProgramsHitOps(_optix.context,
+			_optix.module, "__closesthit__pathtracing_normal",
+			_optix.module, "__anyhit__pathtracing_normal",
 			nullptr,       nullptr
 		);
-		_optix.program_sets["hitops-pathtrace"       ] = new OptiX::ProgramsHitOps(
-			_optix.context,
-			_optix.module, "__closesthit__pathtrace",
-			nullptr,       nullptr, //_optix.module, "__anyhit__pathtrace",
-			nullptr,       nullptr
-		);
-		_optix.program_sets["hitops-pathtrace-shadow"] = new OptiX::ProgramsHitOps(
-			_optix.context,
+		_optix.program_sets["hitops-pathtracing-shadow"] = new OptiX::ProgramsHitOps(_optix.context,
 			nullptr,       nullptr,
-			_optix.module, "__anyhit__pathtrace_shadow",
-			nullptr,       nullptr
-		);
-		_optix.program_sets["hitops-texcs"           ] = new OptiX::ProgramsHitOps(
-			_optix.context,
-			_optix.module, "__closesthit__texcs",
-			nullptr,       nullptr,
-			nullptr,       nullptr
-		);
-		_optix.program_sets["hitops-tri-bary"        ] = new OptiX::ProgramsHitOps(
-			_optix.context,
-			_optix.module, "__closesthit__tri_bary",
-			nullptr,       nullptr,
+			_optix.module, "__anyhit__pathtracing_shadow",
 			nullptr,       nullptr
 		);
 	}
 
 	//Set up integrators
 	{
-		integrators["albedo"   ] = new Integrator(
+		integrators[RenderSettings::LIGHTING_INTEGRATOR::NONE] = new Integrator(
 			this, scenegraph,
-			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )) },
-			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-albedo"   )) }
+			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-lightnone")),
+			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-lightnone"  )) },
+			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-lightnone")) }
 		);
-		integrators["normals"  ] = new Integrator(
+
+		//RenderSettings::LIGHTING_INTEGRATOR::AMBIENT_OCCLUSION
+		//RenderSettings::LIGHTING_INTEGRATOR::DIRECT_LIGHTING_UNSHADOWED
+		//RenderSettings::LIGHTING_INTEGRATOR::SHADOWS
+
+		//RenderSettings::LIGHTING_INTEGRATOR::DIRECT_LIGHTING
+		//RenderSettings::LIGHTING_INTEGRATOR::WHITTED
+		//RenderSettings::LIGHTING_INTEGRATOR::COOK
+
+		integrators[RenderSettings::LIGHTING_INTEGRATOR::PATH_TRACING] = new Integrator(
 			this, scenegraph,
-			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )) },
-			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-normals"  )) }
-		);
-		integrators["pathtrace"] = new Integrator(
-			this, scenegraph,
-			static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
+			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-pathtracing")),
 			{
-				static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-pathtrace"         )),
-				static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-pathtrace-shadow"  ))
+				static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-pathtracing-normal")),
+				static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-pathtracing-shadow"))
 			},
 			{
-				static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-pathtrace"       )),
-				static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-pathtrace-shadow"))
+				static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-pathtracing-normal")),
+				static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-pathtracing-shadow"))
 			}
 		);
-		integrators["texcs"    ] = new Integrator(
-			this, scenegraph,
-			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )) },
-			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-texcs"    )) }
-		);
-		integrators["tri-bary" ] = new Integrator(
-			this, scenegraph,
-			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-forward"  )),
-			{ static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-color"      )) },
-			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-tri-bary" )) }
-		);
+		//RenderSettings::LIGHTING_INTEGRATOR::LIGHT_TRACING
+		//RenderSettings::LIGHTING_INTEGRATOR::BIDIRECTIONAL_PATH_TRACING
+		//RenderSettings::LIGHTING_INTEGRATOR::METROPOLIS_LIGHT_TRANSPORT
+
+		//RenderSettings::LIGHTING_INTEGRATOR::PHOTONMAPPING
+
+		//RenderSettings::LIGHTING_INTEGRATOR::VERTEX_CONNECTION_MERGING
 	}
 }
 Renderer::~Renderer() {
@@ -219,16 +180,22 @@ Renderer::~Renderer() {
 	}
 }
 
-void Renderer::render(size_t scene_index, size_t camera_index, float timestamp, std::string const& integrator_name) const {
-	assert_term(scene_index==0,"Not implemented!"); //SBT build above
+void Renderer::reset() {
+	for (Scene::Camera* camera : scenegraph->cameras) {
+		camera->framebuffer.layers.clear_rendered(_cuda.context);
+	}
+}
 
-	Scene::Scene const* scene = scenegraph->scenes[scene_index];
-	Scene::Framebuffer& framebuffer = scene->cameras[camera_index]->framebuffer;
+void Renderer::render(RenderSettings const& render_settings) const {
+	assert_term(render_settings.index_scene==0,"Not implemented!"); //SBT build above
+
+	Scene::Scene const* scene = scenegraph->scenes[render_settings.index_scene];
+	Scene::Framebuffer& framebuffer = scene->cameras[render_settings.index_camera]->framebuffer;
 
 	framebuffer.launch_prepare(_cuda.context);
 
-	Scene::Scene::InterfaceGPU const& interface_gpu = scene->get_interface(camera_index);
-	integrators.at(integrator_name)->render(interface_gpu);
+	Scene::Scene::InterfaceGPU const& interface_gpu = scene->get_interface(render_settings.index_camera);
+	integrators.at(render_settings.lighting_integrator)->render(interface_gpu);
 
 	framebuffer.launch_finish();
 }

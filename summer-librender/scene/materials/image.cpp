@@ -24,11 +24,19 @@ void Image2D::upload() {
 				channel_descr = cudaCreateChannelDesc<FMTCUDA>();\
 				sizeof_texel = ImageFormatInfo<FMT>::sizeof_texel;\
 				break;
-		SUMMER_CASE(FORMAT::sRGB8,   uchar3)
-		SUMMER_CASE(FORMAT::sRGB8_A8,uchar4)
-		SUMMER_CASE(FORMAT::DEPTH32F,float1)
-		SUMMER_CASE(FORMAT::lRGB32F, float3)
-		SUMMER_CASE(FORMAT::lRGBA32F,float4)
+
+		SUMMER_CASE(FORMAT::SCALAR_F32,  float1)
+		SUMMER_CASE(FORMAT::VEC2_F32,    float2)
+		SUMMER_CASE(FORMAT::VEC3_F32,    float3)
+
+		SUMMER_CASE(FORMAT::CIEXYZ_F32,  float3)
+		SUMMER_CASE(FORMAT::CIEXYZ_A_F32,float4)
+
+		SUMMER_CASE(FORMAT::lRGB_F32,    float3)
+		SUMMER_CASE(FORMAT::lRGB_A_F32,  float4)
+		SUMMER_CASE(FORMAT::sRGB_U8,     uchar3)
+		SUMMER_CASE(FORMAT::sRGB_A_U8,   uchar4)
+
 		#undef SUMMER_CASE
 		nodefault;
 	}

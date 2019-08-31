@@ -42,9 +42,35 @@ template<typename T> class PackedPointer final {
 };
 
 
-inline static __device__ uint32_t pack_sRGB_A(Vec4f const& srgb_a) {
+/*inline static __device__ uint32_t pack_sRGB_A(Vec4f const& srgb_a) {
 	Vec4u discrete = Vec4u(glm::clamp( Vec4i(srgb_a * 255.0f), Vec4i(0),Vec4i(255) ));
 	return (discrete.a<<24) | (discrete.b<<16) | (discrete.g<<8) | discrete.r;
+}*/
+
+
+inline static __device__ Vec2f semiAtomicAdd(Vec2f* address, Vec2f const& val) {
+	float* address_floats = reinterpret_cast<float*>(address);
+	return Vec2f(
+		atomicAdd(address_floats,  val[0]),
+		atomicAdd(address_floats+1,val[1])
+	);
+}
+inline static __device__ Vec3f semiAtomicAdd(Vec3f* address, Vec3f const& val) {
+	float* address_floats = reinterpret_cast<float*>(address);
+	return Vec3f(
+		atomicAdd(address_floats,  val[0]),
+		atomicAdd(address_floats+1,val[1]),
+		atomicAdd(address_floats+2,val[2])
+	);
+}
+inline static __device__ Vec4f semiAtomicAdd(Vec4f* address, Vec4f const& val) {
+	float* address_floats = reinterpret_cast<float*>(address);
+	return Vec4f(
+		atomicAdd(address_floats,  val[0]),
+		atomicAdd(address_floats+1,val[1]),
+		atomicAdd(address_floats+2,val[2]),
+		atomicAdd(address_floats+3,val[3])
+	);
 }
 
 
@@ -198,12 +224,6 @@ static __device__ Scene::ShadePoint get_shade_info(DataSBT_HitOps const& data) {
 	}
 
 	return { indices, bary, pos, texc0, material, Ngeom,Nshad };
-}
-
-
-inline static __device__ void write_rgba(Vec4f const& rgba) {
-	uint32_t index = optixGetPayload_0();
-	interface.camera.framebuffer.rgba.ptr[index] = pack_sRGB_A(rgba);
 }
 
 

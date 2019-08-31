@@ -18,6 +18,7 @@ target_link_libraries(summer-standalone
 	summer-librender
 	summer-librender-gpubuild
 	summer-libcuda
+	summer-libopengl
 	summer-liboptix
 	summer-libutil
 	#summer-libbase

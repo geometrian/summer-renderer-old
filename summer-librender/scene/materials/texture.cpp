@@ -89,11 +89,15 @@ template<Image2D::FORMAT fmt> void   Texture2D::set_gpu_opengl   (void const* da
 	template void   Texture2D::set_cpu       <FMT>(void const* data);\
 	template void   Texture2D::set_gpu_opengl<FMT>(                );\
 	template void   Texture2D::set_gpu_opengl<FMT>(void const* data);
-SUMMER_INSTANTIATE(Image2D::FORMAT::sRGB8   )
-SUMMER_INSTANTIATE(Image2D::FORMAT::sRGB8_A8)
-SUMMER_INSTANTIATE(Image2D::FORMAT::DEPTH32F)
-SUMMER_INSTANTIATE(Image2D::FORMAT::lRGB32F )
-SUMMER_INSTANTIATE(Image2D::FORMAT::lRGBA32F)
+SUMMER_INSTANTIATE(Image2D::FORMAT::SCALAR_F32  )
+SUMMER_INSTANTIATE(Image2D::FORMAT::VEC2_F32    )
+SUMMER_INSTANTIATE(Image2D::FORMAT::VEC3_F32    )
+SUMMER_INSTANTIATE(Image2D::FORMAT::CIEXYZ_F32  )
+SUMMER_INSTANTIATE(Image2D::FORMAT::CIEXYZ_A_F32)
+SUMMER_INSTANTIATE(Image2D::FORMAT::lRGB_F32    )
+SUMMER_INSTANTIATE(Image2D::FORMAT::lRGB_A_F32  )
+SUMMER_INSTANTIATE(Image2D::FORMAT::sRGB_U8     )
+SUMMER_INSTANTIATE(Image2D::FORMAT::sRGB_A_U8   )
 #undef SUMMER_INSTANTIATE
 
 void Texture2D::copy_pbo_to_opengl(CUDA::WritePixelBufferObject2D const* pbo) {
@@ -109,11 +113,15 @@ void Texture2D::copy_pbo_to_opengl(CUDA::WritePixelBufferObject2D const* pbo) {
 				gl_fmt_data = ImageFormatInfo<FMT>::gl_fmt_data;\
 				gl_datatype = ImageFormatInfo<FMT>::gl_datatype;\
 				break;
-		SUMMER_CASE(Image2D::FORMAT::sRGB8   )
-		SUMMER_CASE(Image2D::FORMAT::sRGB8_A8)
-		SUMMER_CASE(Image2D::FORMAT::DEPTH32F)
-		SUMMER_CASE(Image2D::FORMAT::lRGB32F )
-		SUMMER_CASE(Image2D::FORMAT::lRGBA32F)
+		SUMMER_CASE(Image2D::FORMAT::SCALAR_F32  )
+		SUMMER_CASE(Image2D::FORMAT::VEC2_F32    )
+		SUMMER_CASE(Image2D::FORMAT::VEC3_F32    )
+		SUMMER_CASE(Image2D::FORMAT::CIEXYZ_F32  )
+		SUMMER_CASE(Image2D::FORMAT::CIEXYZ_A_F32)
+		SUMMER_CASE(Image2D::FORMAT::lRGB_F32    )
+		SUMMER_CASE(Image2D::FORMAT::lRGB_A_F32  )
+		SUMMER_CASE(Image2D::FORMAT::sRGB_U8     )
+		SUMMER_CASE(Image2D::FORMAT::sRGB_A_U8   )
 		#undef SUMMER_CASE
 		nodefault;
 	}

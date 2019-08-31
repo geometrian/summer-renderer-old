@@ -19,6 +19,7 @@ set_target_properties(summer-librender PROPERTIES LINKER_LANGUAGE CXX)
 add_dependencies(summer-librender
 	summer-librender-gpubuild
 	summer-libcuda
+	summer-libopengl
 	summer-liboptix
 	summer-libutil
 	summer-libbase
