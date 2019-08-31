@@ -40,7 +40,9 @@ template class Framebuffer::Layer<Image2D::FORMAT::sRGB_U8     >;
 template class Framebuffer::Layer<Image2D::FORMAT::sRGB_A_U8   >;
 
 
-Framebuffer::Layers::Layers(Vec2zu const& res, RenderSettings::LAYERS layers) {
+Framebuffer::Layers::Layers(Vec2zu const& res, RenderSettings::LAYERS layers)
+	: rngs(res[1]*res[0]*sizeof(RNG))
+{
 	#define SUMMER_INIT(ENUM,FIELD,FMT)\
 		if ((static_cast<uint32_t>(layers)&static_cast<uint32_t>(RenderSettings::LAYERS::ENUM))>0u) {\
 			FIELD = new Layer<Image2D::FORMAT::FMT>(res);\
@@ -81,6 +83,11 @@ Framebuffer::Layers::Layers(Vec2zu const& res, RenderSettings::LAYERS layers) {
 	SUMMER_INIT(STATISTIC_ACCEL_OPS,       stats_accelstruct,    VEC2_F32  )
 	SUMMER_INIT(STATISTIC_DEPTH_COMPLEXITY,stats_depthcomplexity,SCALAR_F32)
 	SUMMER_INIT(STATISTIC_PHOTON_DENSITY,  stats_photondensity,  SCALAR_F32)
+
+	CUDA::BufferCPUManaged tmp(rngs.size);
+	RNG* tmp_ptr = reinterpret_cast<RNG*>(tmp.ptr);
+	for (size_t i=0;i<res[1]*res[0];++i) tmp_ptr[i].seed(static_cast<uint32_t>(i)+1u);
+	rngs = tmp;
 
 	#undef SUMMER_INIT
 }
@@ -322,7 +329,9 @@ Framebuffer::InterfaceGPU Framebuffer::get_interface() const {
 
 			SUMMER_PTR(stats_accelstruct    ),
 			SUMMER_PTR(stats_depthcomplexity),
-			SUMMER_PTR(stats_photondensity  )
+			SUMMER_PTR(stats_photondensity  ),
+
+			CUDA::Pointer<RNG>(static_cast<RNG*>(layers.rngs.ptr))
 
 			#undef SUMMER_PTR
 		}

@@ -4,6 +4,7 @@
 #include "../stdafx.hpp"
 
 #include "../render-settings.hpp"
+#include "../rng.hpp"
 
 #include "materials/texture.hpp"
 
@@ -76,6 +77,8 @@ class Framebuffer final {
 				//Photon density
 				Layer<Image2D::FORMAT::SCALAR_F32>* stats_photondensity;
 
+				CUDA::BufferGPUManaged rngs;
+
 			public:
 				Layers(Vec2zu const& res, RenderSettings::LAYERS layers);
 				~Layers();
@@ -113,6 +116,8 @@ class Framebuffer final {
 					CUDA::Pointer<Vec2f> stats_accelstruct;
 					CUDA::Pointer<float> stats_depthcomplexity;
 					CUDA::Pointer<float> stats_photondensity;
+
+					CUDA::Pointer<RNG> rngs;
 				} layers;
 		};
 

@@ -32,7 +32,7 @@ class Camera final {
 
 				Framebuffer::InterfaceGPU framebuffer;
 
-				__device__ Ray get_ray(Vec2u const& pixel) const;
+				__device__ Ray get_ray(Vec2f const& pixel) const;
 		};
 
 	public:

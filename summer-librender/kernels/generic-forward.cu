@@ -1,6 +1,8 @@
 #pragma once
 
 
+#include "../rng.hpp"
+
 #include "helpers.cuh"
 
 
@@ -11,7 +13,10 @@ __device__ void generic_forward0_raygen() {
 	uint3 thread_index = optixGetLaunchIndex();
 	uint32_t index = thread_index.y*interface.camera.framebuffer.res[0] + thread_index.x;
 
-	Vec2u pixel = Vec2u( thread_index.x, thread_index.y );
+	RNG& rng = interface.camera.framebuffer.layers.rngs[index];
+
+	Vec2f pixel = Vec2f( thread_index.x, thread_index.y );
+	pixel += Vec2f( rng.get_next(), rng.get_next() );
 	Ray ray = interface.camera.get_ray(pixel);
 
 	semiAtomicAdd(interface.camera.framebuffer.layers.sampling_weights_and_count+index,Vec2f(1.0f,1.0f));

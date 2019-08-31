@@ -4,9 +4,9 @@
 namespace Summer { namespace Scene {
 
 
-__device__ Ray Camera::InterfaceGPU::get_ray(Vec2u const& pixel) const {
+__device__ Ray Camera::InterfaceGPU::get_ray(Vec2f const& pixel) const {
 	Vec2f res = Vec2f(framebuffer.res);
-	Vec2f uv = (Vec2f(pixel)+Vec2f(0.5f)) / res;
+	Vec2f uv = pixel / res;
 	float aspect = res.x / res.y;
 
 	Vec3f nz = glm::normalize( lookat.center - lookat.position );
