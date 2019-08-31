@@ -119,11 +119,14 @@ extern "C" __global__ void __closesthit__pathtracing_normal() {
 		TraceInfoPathtraceShadow info_shad;
 		info_shad.rng = info->rng;
 		#if 1
+			Ray ray_shad = { shade_point.pos, L };
+			offset_ray_orig( &ray_shad, shade_point.Ngeom );
+
 			PackedPointer<TraceInfoPathtraceShadow> ptr = &info_shad;
 			optixTrace(
 				interface.traversable,
 
-				to_float3(shade_point.pos+0.001f*L), to_float3(L),
+				to_float3(ray_shad.orig), to_float3(ray_shad.dir),
 
 				0.0f, std::numeric_limits<float>::infinity(),
 				0.0f,

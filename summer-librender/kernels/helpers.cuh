@@ -228,4 +228,29 @@ static __device__ Scene::ShadePoint get_shade_info(DataSBT_HitOps const& data) {
 }
 
 
+//Offsets ray from surface in a fairly robust way.  See "A Fast and Robust Method for Avoiding Self-
+//	Intersection".
+//	Note: the normal should be on the same side of the surface as the outgoing ray.
+inline static __device__ void offset_ray_orig(Ray* ray, Vec3f const& Ngeom) {
+	static_assert(sizeof(float)==sizeof(int),"Implementation error!");
+
+	Vec3i of_i = Vec3i( 256.0f * Ngeom );
+
+	Vec3i pos_i; memcpy( &pos_i,&ray->orig, 3*sizeof(float) );
+	pos_i = Vec3i(
+		pos_i.x + ( ray->orig.x<0.0f ? -of_i.x : of_i.x ),
+		pos_i.y + ( ray->orig.y<0.0f ? -of_i.y : of_i.y ),
+		pos_i.z + ( ray->orig.z<0.0f ? -of_i.z : of_i.z )
+	);
+	Vec3f p_i; memcpy( &p_i,&pos_i, 3*sizeof(int) );
+
+	Vec3f p_abs = glm::abs(ray->orig);
+	ray->orig = Vec3f(
+		p_abs.x<(1.0f/32.0f) ? ray->orig.x+(1.0f/65536.0f)*Ngeom.x : p_i.x,
+		p_abs.y<(1.0f/32.0f) ? ray->orig.y+(1.0f/65536.0f)*Ngeom.y : p_i.y,
+		p_abs.z<(1.0f/32.0f) ? ray->orig.z+(1.0f/65536.0f)*Ngeom.z : p_i.z
+	);
+}
+
+
 }
