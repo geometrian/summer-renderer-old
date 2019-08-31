@@ -19,4 +19,3 @@
 
 #include "renderer.hpp"
 #include "render-settings.hpp"
-//#include "rng.hpp" //`#include`d by the above

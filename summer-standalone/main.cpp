@@ -5,7 +5,7 @@ static Vec2zu const res = Vec2zu(1024,768);
 //static Vec2zu const res = Vec2zu(2560,1440);
 
 
-#define SCENE_NUMBER 9
+#define SCENE_NUMBER 3
 #if   SCENE_NUMBER == -1
 	#define SCENE_NAME "AntiqueCamera"
 	static float camera_angles[2] = { 30.0f, 20.0f };
@@ -190,7 +190,8 @@ int main(int /*argc*/, char* /*argv*/[]) {
 
 		Summer::Renderer renderer(scenegraph);
 
-		render_settings->lighting_integrator  = Summer::RenderSettings::LIGHTING_INTEGRATOR::PATH_TRACING;
+		//render_settings->lighting_integrator  = Summer::RenderSettings::LIGHTING_INTEGRATOR::PATH_TRACING;
+		render_settings->lighting_integrator  = Summer::RenderSettings::LIGHTING_INTEGRATOR::AMBIENT_OCCLUSION;
 		render_settings->layer_primary_output = Summer::RenderSettings::LAYERS::LIGHTING_RAW;
 		render_settings->index_scene = 0;
 		render_settings->index_camera = 0;

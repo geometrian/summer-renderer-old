@@ -93,18 +93,31 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 		_optix.module = new OptiX::CompiledModule(_optix.context,_optix.pipeline_opts,reinterpret_cast<char const*>(ptx_embed___summer_librender___kernels___compile_all_kernels_cu));
 
 		//Ray generation
-		_optix.program_sets["raygen-lightnone"  ] = new OptiX::ProgramRaygen( _optix.context, _optix.module,"__raygen__lightnone"   );
-		_optix.program_sets["raygen-pathtracing"] = new OptiX::ProgramRaygen( _optix.context, _optix.module,"__raygen__pathtracing" );
+		_optix.program_sets["raygen-lightnone"       ] = new OptiX::ProgramRaygen( _optix.context, _optix.module,"__raygen__lightnone"       );
+		_optix.program_sets["raygen-ambientocclusion"] = new OptiX::ProgramRaygen( _optix.context, _optix.module,"__raygen__ambientocclusion");
+		_optix.program_sets["raygen-pathtracing"     ] = new OptiX::ProgramRaygen( _optix.context, _optix.module,"__raygen__pathtracing"     );
 
 		//Miss
-		_optix.program_sets["miss-lightnone"         ] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__lightnone"          );
-		_optix.program_sets["miss-pathtracing-normal"] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__pathtracing_normal" );
-		_optix.program_sets["miss-pathtracing-shadow"] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__pathtracing_shadow" );
+		_optix.program_sets["miss-lightnone"              ] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__lightnone"               );
+		_optix.program_sets["miss-ambientocclusion-normal"] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__ambientocclusion_normal" );
+		_optix.program_sets["miss-ambientocclusion-shadow"] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__ambientocclusion_shadow" );
+		_optix.program_sets["miss-pathtracing-normal"     ] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__pathtracing_normal"      );
+		_optix.program_sets["miss-pathtracing-shadow"     ] = new OptiX::ProgramMiss( _optix.context, _optix.module,"__miss__pathtracing_shadow"      );
 
 		//Hit operations
 		_optix.program_sets["hitops-lightnone"         ] = new OptiX::ProgramsHitOps(_optix.context,
 			_optix.module, "__closesthit__lightnone",
 			_optix.module, "__anyhit__lightnone",
+			nullptr,       nullptr
+		);
+		_optix.program_sets["hitops-ambientocclusion-normal"] = new OptiX::ProgramsHitOps(_optix.context,
+			_optix.module, "__closesthit__ambientocclusion_normal",
+			_optix.module, "__anyhit__ambientocclusion_normal",
+			nullptr,       nullptr
+		);
+		_optix.program_sets["hitops-ambientocclusion-shadow"] = new OptiX::ProgramsHitOps(_optix.context,
+			nullptr,       nullptr,
+			_optix.module, "__anyhit__ambientocclusion_shadow",
 			nullptr,       nullptr
 		);
 		_optix.program_sets["hitops-pathtracing-normal"] = new OptiX::ProgramsHitOps(_optix.context,
@@ -128,7 +141,18 @@ Renderer::Renderer(Scene::SceneGraph* scenegraph) : scenegraph(scenegraph) {
 			{ static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-lightnone")) }
 		);
 
-		//RenderSettings::LIGHTING_INTEGRATOR::AMBIENT_OCCLUSION
+		integrators[RenderSettings::LIGHTING_INTEGRATOR::AMBIENT_OCCLUSION] = new Integrator(
+			this, scenegraph,
+			  static_cast<OptiX::ProgramRaygen* >(_optix.program_sets.at("raygen-ambientocclusion")),
+			{
+				static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-ambientocclusion-normal")),
+				static_cast<OptiX::ProgramMiss*   >(_optix.program_sets.at("miss-ambientocclusion-shadow"))
+			},
+			{
+				static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-ambientocclusion-normal")),
+				static_cast<OptiX::ProgramsHitOps*>(_optix.program_sets.at("hitops-ambientocclusion-shadow"))
+			}
+		);
 		//RenderSettings::LIGHTING_INTEGRATOR::DIRECT_LIGHTING_UNSHADOWED
 		//RenderSettings::LIGHTING_INTEGRATOR::SHADOWS
 

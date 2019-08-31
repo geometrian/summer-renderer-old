@@ -1,8 +1,6 @@
 #pragma once
 
 
-#include "../rng.hpp"
-
 #include "helpers.cuh"
 
 
@@ -37,7 +35,7 @@ __device__ void generic_forward0_raygen() {
 	info.rng = interface.camera.framebuffer.layers.rngs + info.index.thread_flat;
 
 	Vec2f pixel = Vec2f(info.index.pixel_2D);
-	pixel += Vec2f( info.rng->get_next(), info.rng->get_next() );
+	pixel += Vec2f( info.rng->get_uniform(), info.rng->get_uniform() );
 	Ray ray = interface.camera.get_ray(pixel);
 
 	semiAtomicAdd(interface.camera.framebuffer.layers.sampling_weights_and_count+info.index.pixel_flat,Vec2f(1.0f,1.0f));
@@ -84,7 +82,7 @@ __device__ TraceInfoBasic const* generic_forward0_anyhit() {
 	Vec4f albedo = shade_point.material->get_albedo(&shade_point);
 	if        (albedo.a==1.0f) {
 	} else if (albedo.a!=0.0f) {
-		if (info->rng->get_next() <= albedo.a) {
+		if (info->rng->get_uniform() <= albedo.a) {
 		} else {
 			optixIgnoreIntersection();
 		}

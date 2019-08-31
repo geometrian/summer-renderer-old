@@ -4,7 +4,6 @@
 #include "../stdafx.hpp"
 
 #include "../render-settings.hpp"
-#include "../rng.hpp"
 
 #include "materials/texture.hpp"
 

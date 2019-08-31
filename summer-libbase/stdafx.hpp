@@ -36,6 +36,7 @@
 #define OPTIX_COMPATIBILITY 7
 #include <optix.h>
 #include <optix_stubs.h>
+#define __device_host__ __host__ __device__
 
 #ifdef BUILD_COMPILER_MSVC
 	#define _CRTDBG_MAP_ALLOC
@@ -84,7 +85,15 @@
 	#define unreachable __builtin_unreachable()
 #endif
 
+
 #define COMMA ,
+
+
+#define INFf std::numeric_limits<float>::infinity()
+
+#define TAU      6.28318530717958647692528676655900576839433879875021164195f
+#define PI       3.14159265358979323846264338327950288419716939937510582097f
+#define RECIP_PI 0.318309886183790671537767526745028724068919291480912897495f
 
 
 typedef glm::tvec2<uint8_t> Vec2ub;

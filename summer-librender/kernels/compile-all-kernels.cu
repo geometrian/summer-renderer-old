@@ -15,6 +15,7 @@ this ilk is inevitable.
 
 //#include "generic-forward.cu"
 
+#include "integrate-ambientocclusion.cu"
 #include "integrate-lightnone.cu"
 #include "integrate-pathtrace.cu"
 

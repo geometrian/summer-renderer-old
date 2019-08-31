@@ -45,7 +45,7 @@ extern "C" __global__ void __anyhit__pathtracing_shadow() {
 	if        (albedo.a==1.0f) {
 		info_shad->visibility = 0.0f;
 	} else if (albedo.a!=0.0f) {
-		if (info_shad->rng->get_next() <= albedo.a) {
+		if (info_shad->rng->get_uniform() <= albedo.a) {
 			info_shad->visibility = 0.0f;
 		} else {
 			optixIgnoreIntersection();

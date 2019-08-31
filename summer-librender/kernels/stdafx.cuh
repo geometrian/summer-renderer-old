@@ -1,8 +1,6 @@
 #pragma once
 
 
-#define OPTIX_COMPATIBILITY 7
-
 #ifdef __INTELLISENSE__
 	#define __OPTIX_INCLUDE_INTERNAL_HEADERS__
 	#define __CUDACC__
@@ -26,10 +24,6 @@
 #include "../scene/scenegraph.hpp"
 
 #include "sbt-entries.hpp"
-
-
-#define PI       3.14159265358979323846264338327950288419716939937510582097f
-#define RECIP_PI 0.318309886183790671537767526745028724068919291480912897495f
 
 
 extern "C" {
