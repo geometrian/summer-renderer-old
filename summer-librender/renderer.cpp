@@ -54,7 +54,7 @@ Renderer::Integrator::~Integrator() {
 void Renderer::Integrator::render(Scene::Scene::InterfaceGPU const& interface_gpu) const {
 	//TODO: move outside
 	CUDA::BufferGPUManaged launch_interface_buffer( sizeof(Scene::Scene::InterfaceGPU),&interface_gpu );
-	size_t res[3] = { interface_gpu.camera.framebuffer.res.x, interface_gpu.camera.framebuffer.res.y, 1 };
+	size_t res[3] = { interface_gpu.camera.framebuffer.res.x, interface_gpu.camera.framebuffer.res.y, SUMMER_SAMPLES_PER_FRAME };
 	pipeline->launch(&launch_interface_buffer,res);
 }
 

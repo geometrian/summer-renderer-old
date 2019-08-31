@@ -41,7 +41,7 @@ template class Framebuffer::Layer<Image2D::FORMAT::sRGB_A_U8   >;
 
 
 Framebuffer::Layers::Layers(Vec2zu const& res, RenderSettings::LAYERS layers)
-	: rngs(res[1]*res[0]*sizeof(RNG))
+	: rngs(res[1]*res[0]*SUMMER_SAMPLES_PER_FRAME*sizeof(RNG))
 {
 	#define SUMMER_INIT(ENUM,FIELD,FMT)\
 		if ((static_cast<uint32_t>(layers)&static_cast<uint32_t>(RenderSettings::LAYERS::ENUM))>0u) {\
@@ -86,7 +86,7 @@ Framebuffer::Layers::Layers(Vec2zu const& res, RenderSettings::LAYERS layers)
 
 	CUDA::BufferCPUManaged tmp(rngs.size);
 	RNG* tmp_ptr = reinterpret_cast<RNG*>(tmp.ptr);
-	for (size_t i=0;i<res[1]*res[0];++i) tmp_ptr[i].seed(static_cast<uint32_t>(i)+1u);
+	for (size_t i=0;i<res[1]*res[0]*SUMMER_SAMPLES_PER_FRAME;++i) tmp_ptr[i].seed(static_cast<uint32_t>(i)+1u);
 	rngs = tmp;
 
 	#undef SUMMER_INIT

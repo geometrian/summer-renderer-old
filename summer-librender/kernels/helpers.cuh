@@ -38,7 +38,8 @@ template<typename T> class PackedPointer final {
 			T* result; memcpy(&result,_u,sizeof(T*)); return result;
 		}
 
-		__device__ uint32_t operator[](size_t index) { return _u[index]; }
+		__device__ uint32_t const& operator[](size_t index) const { return _u[index]; }
+		__device__ uint32_t&       operator[](size_t index)       { return _u[index]; }
 };
 
 

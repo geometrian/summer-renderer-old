@@ -7,20 +7,28 @@
 namespace Summer {
 
 
+class TraceInfoPathtraceShadow final {
+	public:
+		RNG* rng;
+
+		float visibility;
+};
+
+
 extern "C" __global__ void __raygen__pathtracing() {
 	generic_forward0_raygen();
 }
 
 
 extern "C" __global__ void __miss__pathtracing_normal() {
-	generic_forward0_miss();
+	TraceInfoBasic const* info = generic_forward0_miss();
 
-	uint32_t index = optixGetPayload_0();
-	semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+index,Vec4f( Vec3f(0.1f), 1.0f ));
+	semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+info->index.pixel_flat,Vec4f( Vec3f(0.1f), 1.0f ));
 }
 extern "C" __global__ void __miss__pathtracing_shadow() {
-	float* visibility = PackedPointer<float>::from_payloads01();
-	*visibility = 1.0f;
+	TraceInfoPathtraceShadow* info_shad = PackedPointer<TraceInfoPathtraceShadow>::from_payloads01();
+
+	info_shad->visibility = 1.0f;
 }
 
 
@@ -28,13 +36,28 @@ extern "C" __global__ void __anyhit__pathtracing_normal() {
 	generic_forward0_anyhit();
 }
 extern "C" __global__ void __anyhit__pathtracing_shadow() {
-	float* visibility = PackedPointer<float>::from_payloads01();
-	*visibility = 0.01f;
+	TraceInfoPathtraceShadow* info_shad = PackedPointer<TraceInfoPathtraceShadow>::from_payloads01();
+
+	DataSBT_HitOps const& data = *reinterpret_cast<DataSBT_HitOps*>(optixGetSbtDataPointer());
+	Scene::ShadePoint shade_point = get_shade_info(data);
+
+	Vec4f albedo = shade_point.material->get_albedo(&shade_point);
+	if        (albedo.a==1.0f) {
+		info_shad->visibility = 0.0f;
+	} else if (albedo.a!=0.0f) {
+		if (info_shad->rng->get_next() <= albedo.a) {
+			info_shad->visibility = 0.0f;
+		} else {
+			optixIgnoreIntersection();
+		}
+	} else {
+		optixIgnoreIntersection();
+	}
 }
 
 
 extern "C" __global__ void __closesthit__pathtracing_normal() {
-	generic_forward0_closesthit();
+	TraceInfoBasic const* info = generic_forward0_closesthit();
 
 	DataSBT_HitOps const& data = *reinterpret_cast<DataSBT_HitOps*>(optixGetSbtDataPointer());
 	Scene::ShadePoint shade_point = get_shade_info(data);
@@ -88,15 +111,15 @@ extern "C" __global__ void __closesthit__pathtracing_normal() {
 		write_rgba(albedo);
 	#endif
 	#if 1
-		Vec3f light_pos = Vec3f(1000,2000,1000);
+		//Vec3f light_pos = Vec3f(1000,2000,1000);
+		Vec3f light_pos = Vec3f(0,2000,0);
 
 		Vec3f L = glm::normalize(light_pos-shade_point.pos);
 
-		float visibility;
+		TraceInfoPathtraceShadow info_shad;
+		info_shad.rng = info->rng;
 		#if 1
-			PackedPointer<float> ptr = &visibility;
-
-			uint32_t u0=ptr[0], u1=ptr[1];
+			PackedPointer<TraceInfoPathtraceShadow> ptr = &info_shad;
 			optixTrace(
 				interface.traversable,
 
@@ -111,10 +134,10 @@ extern "C" __global__ void __closesthit__pathtracing_normal() {
 				1u, 2u,
 				1u,
 
-				u0, u1//ptr[0], ptr[1]
+				ptr[0], ptr[1]
 			);
 		#else
-			visibility = 1.0f;
+			info_shad.visibility = 1.0f;
 		#endif
 
 		float3 Vtmp = optixGetWorldRayDirection();
@@ -123,7 +146,7 @@ extern "C" __global__ void __closesthit__pathtracing_normal() {
 		Scene::ShadePointEvaluate hit = { shade_point, L,V };
 		Vec4f bsdf = shade_point.material->evaluate(&hit);
 
-		bsdf *= visibility;
+		bsdf *= info_shad.visibility;
 
 		bsdf.a = 1.0f;
 		#if 1
@@ -137,8 +160,7 @@ extern "C" __global__ void __closesthit__pathtracing_normal() {
 			Vec4f rgba = bsdf;
 		#endif
 
-		uint32_t index = optixGetPayload_0();
-		semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+index,rgba);
+		semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+info->index.pixel_flat,rgba);
 	#endif
 }
 
