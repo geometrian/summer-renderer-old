@@ -5,7 +5,7 @@ static Vec2zu const res = Vec2zu(1024,768);
 //static Vec2zu const res = Vec2zu(2560,1440);
 
 
-#define SCENE_NUMBER 3
+#define SCENE_NUMBER 9
 #if   SCENE_NUMBER == -1
 	#define SCENE_NAME "AntiqueCamera"
 	static float camera_angles[2] = { 30.0f, 20.0f };
@@ -51,9 +51,9 @@ static Vec2zu const res = Vec2zu(1024,768);
 	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
 #elif SCENE_NUMBER == 7
 	#define SCENE_NAME "ReciprocatingSaw"
-	static float camera_angles[2] = { 60.0f, 22.5f };
-	static float camera_radius = 5.0f;
-	static Vec3f camera_center( 0.0f, 0.0f, 0.0f );
+	static float camera_angles[2] = { 90.0f, 70.0f };
+	static float camera_radius = 250.0f;
+	static Vec3f camera_center( -130.0f, 0.0f, 0.0f );
 #elif SCENE_NUMBER == 8
 	#define SCENE_NAME "SimpleMeshes"
 	static float camera_angles[2] = { 60.0f, 22.5f };
@@ -190,8 +190,8 @@ int main(int /*argc*/, char* /*argv*/[]) {
 
 		Summer::Renderer renderer(scenegraph);
 
-		//render_settings->lighting_integrator  = Summer::RenderSettings::LIGHTING_INTEGRATOR::PATH_TRACING;
-		render_settings->lighting_integrator  = Summer::RenderSettings::LIGHTING_INTEGRATOR::AMBIENT_OCCLUSION;
+		render_settings->lighting_integrator  = Summer::RenderSettings::LIGHTING_INTEGRATOR::PATH_TRACING;
+		//render_settings->lighting_integrator  = Summer::RenderSettings::LIGHTING_INTEGRATOR::AMBIENT_OCCLUSION;
 		render_settings->layer_primary_output = Summer::RenderSettings::LAYERS::LIGHTING_RAW;
 		render_settings->index_scene = 0;
 		render_settings->index_camera = 0;

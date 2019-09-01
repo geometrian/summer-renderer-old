@@ -81,7 +81,7 @@ template<class TypeSource> class RandomNumberGenerator {
 
 		__device_host__ float get_uniform() {
 			uint32_t val = _rng();
-			return static_cast<float>(val) * static_cast<float>(1.0/static_cast<double>(std::numeric_limits<uint32_t>::max()));
+			return static_cast<float>(val) / static_cast<float>(std::numeric_limits<uint32_t>::max());
 		}
 		__device_host__ Vec2f get_disk() {
 			float angle = TAU * get_uniform();
@@ -95,14 +95,14 @@ template<class TypeSource> class RandomNumberGenerator {
 			float disk_radius = std::sqrt(disk_radius_sq);
 
 			float radicand = 1.0f - disk_radius_sq;
-			float height = radicand>0.0f ? std::sqrt(radicand) : 0.0f; //precision issues
+			float height = std::sqrt(radicand);
 
 			Vec3f frame_x, frame_y;
 			build_frame(normal,&frame_x,&frame_y);
 			return
-				std::cos(disk_angle) * frame_x +
-				std::sin(disk_angle) * frame_y +
-				height               * normal
+				disk_radius*std::cos(disk_angle) * frame_x +
+				disk_radius*std::sin(disk_angle) * frame_y +
+				height                           * normal
 			;
 		}
 };

@@ -11,7 +11,7 @@
 
 
 #define SUMMER_MAX_RAYTYPES 2
-#define SUMMER_SAMPLES_PER_FRAME 2
+#define SUMMER_SAMPLES_PER_FRAME 1
 
 
 class Ray final {

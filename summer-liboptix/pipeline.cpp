@@ -48,13 +48,14 @@ Pipeline::Pipeline(Context const* context_optix, Options const& options, ShaderB
 		&_pipeline
 	));
 
-	assert_optix(optixPipelineSetStackSize(
+	//TODO: this
+	/*assert_optix(optixPipelineSetStackSize(
 		_pipeline,
 		//Stack sizes for callables, which we're not using.
 		0u, 0u, 0u,
 		//Maximum number of traversables, including transforms, touched during trace.
 		3u
-	));
+	));*/
 }
 Pipeline::~Pipeline() {
 	assert_optix(optixPipelineDestroy(_pipeline));

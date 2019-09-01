@@ -4,12 +4,16 @@
 #include "../../stdafx.hpp"
 
 
-namespace Summer { namespace Scene {
+namespace Summer {
 
 
-class ShadePoint;
-class ShadePointEvaluate;
-class ShadePointInteract;
+class ShadeInfo;
+class ShadingOperation;
+
+
+namespace Scene {
+
+
 class Texture2D;
 
 
@@ -37,18 +41,19 @@ class MaterialBase {
 					cudaTextureObject_t emission_texture;
 					cudaTextureObject_t normalmap;
 
-					__device__ Vec4f get_albedo(ShadePoint const* hit) const;
-					__device__ Vec3f emission(ShadePoint const* hit) const;
-					__device__ Vec4f evaluate(ShadePointEvaluate const* hit) const;
-					//__device__ Vec4f interact(ShadePointInteract*       hit) const;
+					__device__ Vec4f compute_albedo(ShadeInfo const* shade_info) const;
+					__device__ Vec3f compute_edf_emission(ShadingOperation const* shade_op) const;
+					__device__ Vec4f compute_bsdf_evaluate(ShadingOperation const* shade_op) const;
+					__device__ Vec4f compute_bsdf_interact(ShadingOperation*       shade_op) const;
 				};
 				union {
 					MetallicRoughnessRGBA metallic_roughness_rgba;
 				};
 
-				__device__ Vec4f get_albedo(ShadePoint const* hit) const;
-				__device__ Vec3f emission(ShadePoint const* hit) const;
-				__device__ Vec4f evaluate(ShadePointEvaluate const* hit) const;
+				__device__ Vec4f compute_albedo(ShadeInfo const* shade_info) const;
+				__device__ Vec3f compute_edf_emission(ShadingOperation const* shade_op) const;
+				__device__ Vec4f compute_bsdf_evaluate(ShadingOperation const* shade_op) const;
+				__device__ Vec4f compute_bsdf_interact(ShadingOperation*       shade_op) const;
 		};
 
 	protected:
@@ -98,42 +103,6 @@ class MaterialMetallicRoughnessRGBA final : public MaterialBase {
 		virtual ~MaterialMetallicRoughnessRGBA() = default;
 
 		virtual void fill_interface(InterfaceGPU* interface) const override;
-};
-
-
-class ShadePoint final {
-	public:
-		//Note: this is `uint32_t`s because although indices are semantically `size_t`, OptiX does
-		//	not support larger index types, and those can only make it slower.
-		Vec3u const indices;
-
-		union {
-			Vec2f const bary_2D;
-			Vec3f const bary_3D;
-		};
-
-		Vec3f const pos;
-
-		Vec2f const texc0;
-
-		MaterialBase::InterfaceGPU const*const material;
-
-		Vec3f const Ngeom;
-		Vec3f const Nshad;
-};
-class ShadePointEvaluate final {
-	public:
-		ShadePoint point;
-
-		Vec3f const w_i;
-		Vec3f const w_o;
-};
-class ShadePointInteract final {
-	public:
-		ShadePoint point;
-
-		Vec3f const w_i;
-		Vec3f*      w_o;
 };
 
 

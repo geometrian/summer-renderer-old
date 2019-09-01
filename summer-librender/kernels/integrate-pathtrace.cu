@@ -7,49 +7,76 @@
 namespace Summer {
 
 
+class TraceInfoPathtraceNormal final : public TraceInfoBasic {
+	public:
+		uint32_t ray_depth;
+
+		Vec3f throughput;
+		float pdf;
+
+		Vec3f Lo;
+
+	public:
+		__device__ TraceInfoPathtraceNormal() :
+			TraceInfoBasic(),
+			ray_depth(0u), throughput(1.0f),pdf(1.0f), Lo(Vec3f(0.0f))
+		{}
+};
 class TraceInfoPathtraceShadow final {
 	public:
-		RNG* rng;
+		RNG*const rng;
 
 		float visibility;
+
+	public:
+		__device__ explicit TraceInfoPathtraceShadow(RNG* rng) : rng(rng) {}
 };
 
 
 extern "C" __global__ void __raygen__pathtracing() {
-	generic_forward0_raygen();
+	TraceInfoPathtraceNormal trace_info;
+	generic_forward0_raygen<TraceInfoPathtraceNormal>(trace_info);
+
+	semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+trace_info.index.pixel_flat,Vec4f(trace_info.Lo,1.0f));
 }
 
 
 extern "C" __global__ void __miss__pathtracing_normal() {
-	TraceInfoBasic const* info = generic_forward0_miss();
+	TraceInfoPathtraceNormal* trace_info = generic_forward0_miss<TraceInfoPathtraceNormal>();
 
-	semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+info->index.pixel_flat,Vec4f( Vec3f(0.1f), 1.0f ));
+	#if 0
+		Vec3f Li = Vec3f(0.1f);
+		if (trace_info->ray_depth>0u);
+		else {
+			trace_info->Lo += Li;
+		}
+	#else
+		Vec3f Li = 10.0f*Vec3f(5.0f,6.0f,8.0f);
+		trace_info->Lo += Li * trace_info->throughput / trace_info->pdf;
+	#endif
 }
 extern "C" __global__ void __miss__pathtracing_shadow() {
-	TraceInfoPathtraceShadow* info_shad = PackedPointer<TraceInfoPathtraceShadow>::from_payloads01();
+	TraceInfoPathtraceShadow* trace_info = PackedPointer<TraceInfoPathtraceShadow>::from_payloads01();
 
-	info_shad->visibility = 1.0f;
+	trace_info->visibility = 1.0f;
 }
 
 
 extern "C" __global__ void __anyhit__pathtracing_normal() {
-	generic_forward0_anyhit();
+	TraceInfoPathtraceNormal const* trace_info = PackedPointer<TraceInfoPathtraceNormal>::from_payloads01();
+
+	ShadingOperation shade_op(trace_info->rng);
+
+	generic_forward0_anyhit<TraceInfoPathtraceNormal>(shade_op,trace_info);
 }
 extern "C" __global__ void __anyhit__pathtracing_shadow() {
-	TraceInfoPathtraceShadow* info_shad = PackedPointer<TraceInfoPathtraceShadow>::from_payloads01();
+	TraceInfoPathtraceShadow* trace_info = PackedPointer<TraceInfoPathtraceShadow>::from_payloads01();
 
-	DataSBT_HitOps const& data = *reinterpret_cast<DataSBT_HitOps*>(optixGetSbtDataPointer());
-	Scene::ShadePoint shade_point = get_shade_info(data);
+	ShadingOperation shade_op(trace_info->rng);
 
-	Vec4f albedo = shade_point.material->get_albedo(&shade_point);
-	if        (albedo.a==1.0f) {
-		info_shad->visibility = 0.0f;
-	} else if (albedo.a!=0.0f) {
-		if (info_shad->rng->get_uniform() <= albedo.a) {
-			info_shad->visibility = 0.0f;
-		} else {
-			optixIgnoreIntersection();
-		}
+	if (shade_op.stochastic_is_opaque()) {
+		trace_info->visibility = 0.0f;
+		optixTerminateRay();
 	} else {
 		optixIgnoreIntersection();
 	}
@@ -57,114 +84,100 @@ extern "C" __global__ void __anyhit__pathtracing_shadow() {
 
 
 extern "C" __global__ void __closesthit__pathtracing_normal() {
-	TraceInfoBasic const* info = generic_forward0_closesthit();
+	TraceInfoPathtraceNormal* trace_info = PackedPointer<TraceInfoPathtraceNormal>::from_payloads01();
 
-	DataSBT_HitOps const& data = *reinterpret_cast<DataSBT_HitOps*>(optixGetSbtDataPointer());
-	Scene::ShadePoint shade_point = get_shade_info(data);
+	ShadingOperation shade_op(trace_info->rng);
+	shade_op.compute_shade_info_pos_normals();
 
-	//write_rgba(Vec4f( shade_point.bary, 1.0f ));
-	//write_rgba(Vec4f( shade_point.texc0,0.0f, 1.0f ));
-	//write_rgba(Vec4f( Vec3f(shade_point.texc0.y), 1.0f ));
-	//write_rgba(Vec4f( shade_point.Ngeom, 1.0f ));
-	//write_rgba(Vec4f( shade_point.Nshad, 1.0f ));
+	if (trace_info->ray_depth>0u); else {
+		generic_forward0_closesthit(shade_op,trace_info);
+	}
 
-	//write_rgba(Vec4f( Vec3f(data.sbtentry_index/20.0f), 1.0f ));
+	float3 Vtmp = optixGetWorldRayDirection();
+	Vec3f V = glm::normalize(-Vec3f(Vtmp.x,Vtmp.y,Vtmp.z));
 
-	/*Vec3u indices = calc_indices(data);
-	if (indices.x==0) {
-		write_rgba(Vec4f( 1,0,1, 1.0f ));
-	} else {
-		write_rgba(Vec4f( Vec3f(indices)*0.4f, 1.0f ));
-	}*/
+	shade_op.w_o = V;
+	shade_op.fix_normals_from_w_o();
 
-	/*switch (data.buffers_descriptor.type_indices) {
-		case 0b00u:
-			write_rgba(Vec4f( 0.0f,0.0f,0.0f, 1.0f ));
-			break;
-		case 0b01u: //16-bit
-			write_rgba(Vec4f( 0.0f,0.0f,1.0f, 1.0f ));
-			break;
-		case 0b10u: //32-bit
-			write_rgba(Vec4f( 0.0f,1.0f,0.0f, 1.0f ));
-			break;
-		default: //error
-			write_rgba(Vec4f( 1.0f,0.0f,1.0f, 1.0f ));
-			break;
-	}*/
-	#if 0
-		unsigned int prim_index = optixGetPrimitiveIndex();
-		write_rgba(Vec4f( Vec3f(prim_index/50000.0f), 1.0f ));
-	#endif
-	#if 0
-		write_rgba(Vec4f( Vec3f(shade_point.indices)/62663.0f, 1.0f ));
-	#endif
-	#if 0
-	switch (data.material_index) {
-		case 0:  write_rgba(Vec4f(1,0,0,1)); break;
-		case 1:  write_rgba(Vec4f(0,1,0,1)); break;
-		default: write_rgba(Vec4f(1,0,1,1)); break;
+	//Emission
+	trace_info->Lo += shade_op.compute_edf_emission() * trace_info->throughput;
+
+	//Direct lighting
+	#if 1
+	{
+		Vec3f light_pos = Vec3f(1000,2000,1000);
+		//Vec3f light_pos = Vec3f(200,1000,-100);
+		//Vec3f light_pos = Vec3f(0,2000,0);
+		Vec3f L = glm::normalize( light_pos - shade_op.shade_info.pos_wld );
+
+		TraceInfoPathtraceShadow info_shad(trace_info->rng);
+
+		Ray ray_shad = { shade_op.shade_info.pos_wld, L };
+		offset_ray_orig( &ray_shad, shade_op.shade_info.Ngeom_wld );
+
+		PackedPointer<TraceInfoPathtraceShadow> ptr = &info_shad;
+		optixTrace(
+			interface.traversable,
+
+			to_float3(ray_shad.orig), to_float3(ray_shad.dir),
+
+			0.0f, std::numeric_limits<float>::infinity(),
+			0.0f,
+
+			OptixVisibilityMask(0b11111111),
+
+			OptixRayFlags::OPTIX_RAY_FLAG_NONE,
+			1u, unsigned int(SUMMER_MAX_RAYTYPES),
+			1u,
+
+			ptr[0], ptr[1]
+		);
+
+		Vec3f Li = Vec3f(100.0f);
+
+		shade_op.w_i = L;
+		Vec4f bsdf = shade_op.compute_bsdf_evaluate();
+
+		trace_info->Lo += Li * trace_info->throughput * Vec3f(bsdf) * glm::abs(glm::dot( shade_op.shade_info.Nshad_wld, L )) * info_shad.visibility / trace_info->pdf;
 	}
 	#endif
-	#if 0
-		Vec4f albedo = shade_point.material->get_albedo(&shade_point);
-		albedo.a = 1.0f;
-		write_rgba(albedo);
-	#endif
+
 	#if 1
-		//Vec3f light_pos = Vec3f(1000,2000,1000);
-		Vec3f light_pos = Vec3f(0,2000,0);
+	if (trace_info->ray_depth<3u) {
+		//Indirect lighting
 
-		Vec3f L = glm::normalize(light_pos-shade_point.pos);
+		Ray ray_ind = { shade_op.shade_info.pos_wld, trace_info->rng->get_coshemi(shade_op.shade_info.Nshad_wld) };
+		offset_ray_orig( &ray_ind, shade_op.shade_info.Ngeom_wld );
 
-		TraceInfoPathtraceShadow info_shad;
-		info_shad.rng = info->rng;
-		#if 1
-			Ray ray_shad = { shade_point.pos, L };
-			offset_ray_orig( &ray_shad, shade_point.Ngeom );
+		shade_op.w_i = ray_ind.dir;
+		Vec4f bsdf = shade_op.compute_bsdf_evaluate();
+		trace_info->throughput *= Vec3f(bsdf) * glm::abs(glm::dot( shade_op.shade_info.Nshad_wld, shade_op.w_i ));
 
-			PackedPointer<TraceInfoPathtraceShadow> ptr = &info_shad;
-			optixTrace(
-				interface.traversable,
+		PackedPointer<TraceInfoPathtraceNormal> ptr = trace_info;
+		++trace_info->ray_depth;
+		//trace_info->pdf *= RECIP_PI;
+		optixTrace(
+			interface.traversable,
 
-				to_float3(ray_shad.orig), to_float3(ray_shad.dir),
+			to_float3(ray_ind.orig), to_float3(ray_ind.dir),
 
-				0.0f, std::numeric_limits<float>::infinity(),
-				0.0f,
+			0.0f, std::numeric_limits<float>::infinity(),
+			0.0f,
 
-				OptixVisibilityMask(0b11111111),
+			OptixVisibilityMask(0b11111111),
 
-				OptixRayFlags::OPTIX_RAY_FLAG_NONE,
-				1u, 2u,
-				1u,
+			OptixRayFlags::OPTIX_RAY_FLAG_NONE,
+			0u, unsigned int(SUMMER_MAX_RAYTYPES),
+			0u,
 
-				ptr[0], ptr[1]
-			);
-		#else
-			info_shad.visibility = 1.0f;
-		#endif
-
-		float3 Vtmp = optixGetWorldRayDirection();
-		Vec3f V = -Vec3f(Vtmp.x,Vtmp.y,Vtmp.z);
-
-		Scene::ShadePointEvaluate hit = { shade_point, L,V };
-		Vec4f bsdf = shade_point.material->evaluate(&hit);
-
-		bsdf *= info_shad.visibility;
-
-		bsdf.a = 1.0f;
-		#if 1
-			Vec3f Li = Vec3f(10.0f);
-
-			Vec3f Lo = Li * Vec3f(bsdf) * glm::abs(glm::dot(L,shade_point.Nshad));
-			Lo += shade_point.material->emission(&shade_point);
-
-			Vec4f rgba = Vec4f(Lo,1.0f);
-		#else
-			Vec4f rgba = bsdf;
-		#endif
-
-		semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+info->index.pixel_flat,rgba);
+			ptr[0], ptr[1]
+		);
+		//trace_info->pdf /= RECIP_PI;
+		//--trace_info->ray_depth;
+	}
 	#endif
+
+	//trace_info->Lo += trace_info->rng->get_coshemi(shade_op.shade_info.Nshad_wld);
 }
 
   

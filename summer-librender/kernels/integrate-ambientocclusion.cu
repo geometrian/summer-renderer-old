@@ -9,47 +9,51 @@ namespace Summer {
 
 class TraceInfoAmbientOcclusion final {
 	public:
-		RNG* rng;
+		RNG*const rng;
 
 		float visibility;
+
+	public:
+		__device__ explicit TraceInfoAmbientOcclusion(RNG* rng) : rng(rng) {}
 };
 
 
 extern "C" __global__ void __raygen__ambientocclusion() {
-	generic_forward0_raygen();
+	TraceInfoBasic trace_info;
+	generic_forward0_raygen<TraceInfoBasic>(trace_info);
 }
 
 
 extern "C" __global__ void __miss__ambientocclusion_normal() {
-	TraceInfoBasic const* info = generic_forward0_miss();
+	TraceInfoBasic const* trace_info = generic_forward0_miss<TraceInfoBasic>();
 
-	semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+info->index.pixel_flat,Vec4f( Vec3f(1.0f), 1.0f ));
+	semiAtomicAdd(
+		interface.camera.framebuffer.layers.lighting_integration + trace_info->index.pixel_flat,
+		Vec4f( Vec3f(1.0f), 1.0f )
+	);
 }
 extern "C" __global__ void __miss__ambientocclusion_shadow() {
-	TraceInfoAmbientOcclusion* info_shad = PackedPointer<TraceInfoAmbientOcclusion>::from_payloads01();
+	TraceInfoAmbientOcclusion* trace_info = PackedPointer<TraceInfoAmbientOcclusion>::from_payloads01();
 
-	info_shad->visibility = 1.0f;
+	trace_info->visibility = 1.0f;
 }
 
 
 extern "C" __global__ void __anyhit__ambientocclusion_normal() {
-	generic_forward0_anyhit();
+	TraceInfoBasic const* trace_info = PackedPointer<TraceInfoBasic>::from_payloads01();
+
+	ShadingOperation shade_op(trace_info->rng);
+
+	generic_forward0_anyhit<TraceInfoBasic>(shade_op,trace_info);
 }
 extern "C" __global__ void __anyhit__ambientocclusion_shadow() {
-	TraceInfoAmbientOcclusion* info_shad = PackedPointer<TraceInfoAmbientOcclusion>::from_payloads01();
+	TraceInfoAmbientOcclusion* trace_info = PackedPointer<TraceInfoAmbientOcclusion>::from_payloads01();
 
-	DataSBT_HitOps const& data = *reinterpret_cast<DataSBT_HitOps*>(optixGetSbtDataPointer());
-	Scene::ShadePoint shade_point = get_shade_info(data);
+	ShadingOperation shade_op(trace_info->rng);
 
-	Vec4f albedo = shade_point.material->get_albedo(&shade_point);
-	if        (albedo.a==1.0f) {
-		info_shad->visibility = 0.0f;
-	} else if (albedo.a!=0.0f) {
-		if (info_shad->rng->get_uniform() <= albedo.a) {
-			info_shad->visibility = 0.0f;
-		} else {
-			optixIgnoreIntersection();
-		}
+	if (shade_op.stochastic_is_opaque()) {
+		trace_info->visibility = 0.0f;
+		optixTerminateRay();
 	} else {
 		optixIgnoreIntersection();
 	}
@@ -57,17 +61,21 @@ extern "C" __global__ void __anyhit__ambientocclusion_shadow() {
 
 
 extern "C" __global__ void __closesthit__ambientocclusion_normal() {
-	TraceInfoBasic const* info = generic_forward0_closesthit();
+	TraceInfoBasic* trace_info = PackedPointer<TraceInfoBasic>::from_payloads01();
 
-	DataSBT_HitOps const& data = *reinterpret_cast<DataSBT_HitOps*>(optixGetSbtDataPointer());
-	Scene::ShadePoint shade_point = get_shade_info(data);
+	ShadingOperation shade_op(trace_info->rng);
+	shade_op.compute_shade_info_pos_normals();
 
-	TraceInfoAmbientOcclusion info_shad = { info->rng, 1.0f };
+	generic_forward0_closesthit(shade_op,trace_info);
 
-	Ray ray_shad = { shade_point.pos, info->rng->get_coshemi(shade_point.Nshad) };
-	offset_ray_orig( &ray_shad, shade_point.Ngeom );
+	Ray ray_shad = {
+		shade_op.shade_info.pos_wld,
+		trace_info->rng->get_coshemi(shade_op.shade_info.Nshad_wld)
+	};
+	offset_ray_orig( &ray_shad, shade_op.shade_info.Ngeom_wld );
 
-	PackedPointer<TraceInfoAmbientOcclusion> ptr = &info_shad;
+	TraceInfoAmbientOcclusion trace_info_shad(trace_info->rng);
+	PackedPointer<TraceInfoAmbientOcclusion> ptr = &trace_info_shad;
 	optixTrace(
 		interface.traversable,
 
@@ -79,14 +87,14 @@ extern "C" __global__ void __closesthit__ambientocclusion_normal() {
 		OptixVisibilityMask(0b11111111),
 
 		OptixRayFlags::OPTIX_RAY_FLAG_NONE,
-		1u, 2u,
+		1u, unsigned int(SUMMER_MAX_RAYTYPES),
 		1u,
 
 		ptr[0], ptr[1]
 	);
 
-	Vec4f color = Vec4f(Vec3f(info_shad.visibility),1.0f);
-	semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+info->index.pixel_flat,color);
+	Vec4f color = Vec4f(Vec3f(trace_info_shad.visibility),1.0f);
+	semiAtomicAdd(interface.camera.framebuffer.layers.lighting_integration+trace_info->index.pixel_flat,color);
 }
 
   
